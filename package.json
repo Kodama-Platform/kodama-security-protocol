@@ -1,0 +1,20 @@
+{
+  "name": "kodama-security-protocol",
+  "private": true,
+  "version": "0.1.0",
+  "description": "The official implementation of the Kodama Security Protocol (KSP) \u2014 a shared zero-knowledge, capability-based security framework powering every Kodama product.",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @kodama/ksp-core && npm run build -w @kodama/ksp-browser && npm run build -w @kodama/ksp-server",
+    "test": "npm run test -ws",
+    "typecheck": "npm run typecheck -ws",
+    "generate-vectors": "npm run generate-vectors -w @kodama/ksp-core"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "vitest": "^2.1.1"
+  }
+}

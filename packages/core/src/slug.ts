@@ -1,0 +1,3 @@
+const RESERVED_SLUGS = new Set(["admin","api","auth","login","signup","dashboard","settings","manage","note","secret","drop","poll","room","link","www","support","help","pricing","terms","privacy","security"]);
+export function normalizeSlug(input: string): string { return input.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, ""); }
+export function validateSlug(slug: string): { ok: true } | { ok: false; error: string } { if (!/^[a-z0-9-]{3,40}$/.test(slug)) return { ok: false, error: "invalid_format" }; if (RESERVED_SLUGS.has(slug)) return { ok: false, error: "reserved_slug" }; return { ok: true }; }

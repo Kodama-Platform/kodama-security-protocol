@@ -1,0 +1,83 @@
+{
+  "version": "ksp-v1",
+  "generated_at": "2026-07-09T12:29:13.312Z",
+  "kdf": {
+    "argon2id": {
+      "params": {
+        "parallelism": 1,
+        "iterations": 3,
+        "memorySize": 65536,
+        "hashLength": 32
+      },
+      "password": "correct horse battery staple",
+      "salt_hex": "4242424242424242424242424242424242424242424242424242424242424242",
+      "master_secret_hex": "faf7763554b077eb07b0eccd7380ce43085d2e158e5a7f65c5b54871137cb5a0",
+      "read_key_hex": "e1d652db230e0843a3dfe56946f261bf9d489d245c619fb511c400e01dcafa55",
+      "editor_seed_hex": "f0f36583fd4a6524a06cbb35df01852582ab8dcbaa40a393a25139e18af79aa9",
+      "owner_seed_hex": "97e84c5afd520f2f69b6073a40a2af40c2187af035e5c863a2aa6fcaac0d06a1"
+    },
+    "pbkdf2": {
+      "iterations": 310000,
+      "password": "correct horse battery staple",
+      "salt_hex": "4242424242424242424242424242424242424242424242424242424242424242",
+      "master_secret_hex": "79ebfc8834c9e51f770dc2e79f94c36e55af66f853a886854ba3406fde1d6546",
+      "read_key_hex": "5017c9ee749d8a5ab77f6726fa171439a28c5031c801cfdb78faa26accc23db3"
+    }
+  },
+  "compression": {
+    "algorithm": "gzip",
+    "plaintext": "hello kodama",
+    "compressed_hex": "1f8b080000000000000acb48cdc9c957c8ce4f49cc4d0400446114ad0c000000"
+  },
+  "encryption": {
+    "plaintext": "hello kodama",
+    "slug": "wallet",
+    "product_type": "note",
+    "version": 1,
+    "aad": "wallet:1:note",
+    "iv_hex": "111111111111111111111111",
+    "ciphertext": "utc8wKBAq4jHYypU6ciGHHzWDVKXCM6kMW32dyVCOrjSL9PTWpjtnoEBzuJlUmVl",
+    "iv": "ERERERERERERERER"
+  },
+  "create_note": {
+    "slug": "wallet",
+    "product_type": "note",
+    "version": 1,
+    "kdf": "argon2id",
+    "salt": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
+    "owner_public_key": "qLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=",
+    "editor_public_keys": [
+      "PKe9OGfrlc8sh/zCgOdIKXpWXL+TorKzhhmI6eC3IlM="
+    ],
+    "ciphertext": "utc8wKBAq4jHYypU6ciGHHzWDVKXCM6kMW32dyVCOrjSL9PTWpjtnoEBzuJlUmVl",
+    "iv": "ERERERERERERERER",
+    "canonical_message": "kodama:v1:create-note\nwallet\nnote\n1\nargon2id\n24562e59ae63e0b6fa67ff0b6bb69e15b8bc45ef33aa4ef8e615a2d41c353703\nERERERERERERERER\nQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=\nqLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=\n361cd4e736713be17233b392cf5f6e5673c8e45240397b96416595d2e3a55a87",
+    "owner_signature": "SeGhOrXOzBIYrJWydnmHYdoPovAIXu8J77wo3n0cejcvSP+rGRsellGO87fwZ0Y65AQylDxqm03MSmWtw7u5DQ=="
+  },
+  "slug": {
+    "cases": [
+      {
+        "input": "Wallet",
+        "normalized": "wallet",
+        "valid": true
+      },
+      {
+        "input": "  My Note  ",
+        "normalized": "my-note",
+        "valid": true
+      },
+      {
+        "input": "ab",
+        "normalized": "ab",
+        "valid": false,
+        "error": "invalid_format"
+      },
+      {
+        "input": "admin",
+        "normalized": "admin",
+        "valid": false,
+        "error": "reserved_slug"
+      }
+    ]
+  }
+}
