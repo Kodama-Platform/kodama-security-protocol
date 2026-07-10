@@ -12,3 +12,4 @@ export * from "./rotation.js";
 export * from "./signatures.js";
 export * from "./slug.js";
 export * from "./types.js";
+export * from "./wire.js";

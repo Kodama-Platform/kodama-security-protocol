@@ -89,7 +89,7 @@ See [`examples/note/create-note.ts`](examples/note/create-note.ts) and [`docs/IN
 
 | Document | Description |
 |----------|-------------|
-| [Protocol Specification](docs/KODAMA_SECURITY_PROTOCOL.md) | Threat model, key hierarchy, message formats, sharing, rotation |
+| [Protocol Specification](docs/KODAMA_SECURITY_PROTOCOL.md) | §2 = normative reference implementation; §3+ = planned product architecture |
 | [Integration Guide](docs/INTEGRATION.md) | Step-by-step flows for create, read, edit, and owner actions |
 | [Audit Report](docs/AUDIT.md) | Implementation status, gaps, and recommendations |
 | [Backend Schema](docs/backend-schema.sql) | Reference database tables |

@@ -1,6 +1,6 @@
 {
   "version": "ksp-v1",
-  "generated_at": "2026-07-09T12:29:13.312Z",
+  "generated_at": "2026-07-09T22:04:31.664Z",
   "kdf": {
     "argon2id": {
       "params": {
@@ -36,8 +36,8 @@
     "version": 1,
     "aad": "wallet:1:note",
     "iv_hex": "111111111111111111111111",
-    "ciphertext": "utc8wKBAq4jHYypU6ciGHHzWDVKXCM6kMW32dyVCOrjSL9PTWpjtnoEBzuJlUmVl",
-    "iv": "ERERERERERERERER"
+    "iv": "ERERERERERERERER",
+    "ciphertext_hex": "bad73cc0a040ab88c7632a54e9c8861c7cd60d529708cea4316df67725423ab8d22fd3d35a98ed9e8101cee265526565"
   },
   "create_note": {
     "slug": "wallet",
@@ -49,10 +49,10 @@
     "editor_public_keys": [
       "PKe9OGfrlc8sh/zCgOdIKXpWXL+TorKzhhmI6eC3IlM="
     ],
-    "ciphertext": "utc8wKBAq4jHYypU6ciGHHzWDVKXCM6kMW32dyVCOrjSL9PTWpjtnoEBzuJlUmVl",
     "iv": "ERERERERERERERER",
-    "canonical_message": "kodama:v1:create-note\nwallet\nnote\n1\nargon2id\n24562e59ae63e0b6fa67ff0b6bb69e15b8bc45ef33aa4ef8e615a2d41c353703\nERERERERERERERER\nQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=\nqLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=\n361cd4e736713be17233b392cf5f6e5673c8e45240397b96416595d2e3a55a87",
-    "owner_signature": "SeGhOrXOzBIYrJWydnmHYdoPovAIXu8J77wo3n0cejcvSP+rGRsellGO87fwZ0Y65AQylDxqm03MSmWtw7u5DQ=="
+    "ciphertext_hex": "bad73cc0a040ab88c7632a54e9c8861c7cd60d529708cea4316df67725423ab8d22fd3d35a98ed9e8101cee265526565",
+    "canonical_message": "kodama:v1:create-note\nwallet\nnote\n1\nargon2id\n1ded27fc28c3fb436cfd27d5c94b513b4ea0bc1236d73a67109f38817afc87d5\nERERERERERERERER\nQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=\nqLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=\n361cd4e736713be17233b392cf5f6e5673c8e45240397b96416595d2e3a55a87",
+    "owner_signature": "e112T6a/LSYfLRXd1/WXGEry/shhNtTjG1f8YUwv2wm3QXlX0FIjoSnbIT+ry0Nahx7rok7XLMyYZdzv569RDA=="
   },
   "slug": {
     "cases": [

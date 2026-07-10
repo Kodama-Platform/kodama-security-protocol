@@ -16,6 +16,7 @@ npm install @kodama/ksp-server
 | `verifyEditPayload` | Verify editor signature, version, and authorized key |
 | `verifyOwnerActionPayload` | Verify owner signature on admin actions |
 | `verifyRotateReaderAction` | Verify reader-capability rotation action |
+| `verifyRotatePasswordAction` | Verify password rotation action |
 | `verifyRotateEditorAction` | Verify editor key rotation action |
 | `verifyRevokeAction` | Verify revoke/archive action |
 | `OWNER_ACTIONS` | Action name constants (`rotate-reader`, `rotate-editor`, `revoke`) |

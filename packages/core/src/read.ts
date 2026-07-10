@@ -44,7 +44,7 @@ export async function readWithReadKey(
 ): Promise<string> {
   const aad = buildContentAad(place.slug, place.version, place.product_type);
   const compressed = await decryptBytes(
-    { ciphertext: place.ciphertext, iv: place.iv },
+    { ciphertext: place.ciphertext, iv: base64ToBytes(place.iv) },
     readKey,
     aad
   );

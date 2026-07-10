@@ -5,7 +5,7 @@ import { deriveKspMaterialFromPassword } from "./keys.js";
 import {
   createNoteMessage,
   editNoteMessage,
-  ownerActionMessage,
+  ownerActionMessageFromWire,
 } from "./messages.js";
 import { randomSalt } from "./random.js";
 import { buildContentAad } from "./read.js";
@@ -58,13 +58,14 @@ export async function createNotePayload(
     material.readKey,
     buildContentAad(slug, version, productType)
   );
+  const iv = bytesToBase64(encrypted.iv);
   const message = createNoteMessage({
     slug,
     productType,
     version,
     kdf,
     ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv,
+    iv,
     salt,
     ownerPublicKey: owner.publicKey,
     editorPublicKeys: [editor.publicKey],
@@ -78,7 +79,7 @@ export async function createNotePayload(
       version,
       kdf,
       ciphertext: encrypted.ciphertext,
-      iv: encrypted.iv,
+      iv,
       salt,
       owner_public_key: owner.publicKey,
       editor_public_keys: [editor.publicKey],
@@ -127,12 +128,13 @@ export async function createEditPayload(args: {
     args.readKey,
     buildContentAad(args.slug, newVersion, productType)
   );
+  const iv = bytesToBase64(encrypted.iv);
   const message = editNoteMessage({
     slug: args.slug,
     oldVersion: args.oldVersion,
     newVersion,
     ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv,
+    iv,
     editorPublicKey: args.editorPublicKey,
   });
   return {
@@ -140,7 +142,7 @@ export async function createEditPayload(args: {
     old_version: args.oldVersion,
     new_version: newVersion,
     ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv,
+    iv,
     editor_public_key: args.editorPublicKey,
     signature: await signMessage(args.editorPrivateKey, message),
   };
@@ -176,12 +178,15 @@ export async function createOwnerActionPayload<T>(args: {
   version: number;
   payload: T;
   ownerPrivateKey: string;
+  /** Required for rotate-reader and rotate-password. */
+  ciphertext?: Uint8Array;
 }): Promise<OwnerActionPayload<T>> {
-  const message = ownerActionMessage({
+  const message = ownerActionMessageFromWire({
     slug: args.slug,
     action: args.action,
     version: args.version,
     payload: args.payload,
+    ciphertext: args.ciphertext,
   });
   return {
     slug: args.slug,
@@ -195,16 +200,18 @@ export async function createOwnerActionPayload<T>(args: {
 export async function verifyOwnerActionPayload<T>(
   payload: OwnerActionPayload<T>,
   ownerPublicKey: string,
-  expectedVersion?: number
+  expectedVersion?: number,
+  options?: { ciphertext?: Uint8Array }
 ): Promise<boolean> {
   if (expectedVersion !== undefined && payload.version !== expectedVersion) {
     return false;
   }
-  const message = ownerActionMessage({
+  const message = ownerActionMessageFromWire({
     slug: payload.slug,
     action: payload.action,
     version: payload.version,
     payload: payload.payload,
+    ciphertext: options?.ciphertext,
   });
   return verifySignature(ownerPublicKey, message, payload.signature);
 }

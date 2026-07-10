@@ -24,10 +24,11 @@ npm run generate-vectors -w @kodama/ksp-core
 | `keys` | `deriveKspMaterial`, `deriveKspMaterialFromPassword`, `deriveCapability` |
 | `compress` | `compressNoteText`, `decompressNoteText`, `compressBytes`, `decompressBytes` |
 | `encryption` | `encryptBytes`, `decryptBytes` |
+| `wire` | `buildBinaryUploadFormData`, `parseBinaryUploadFormData`, `buildCreateUploadFormData`, split/merge helpers |
 | `read` | `readWithPassword`, `readWithCapability`, `readWithReadKey`, `buildContentAad`, `deriveReadKeyFromPassword` |
-| `rotation` | `createRotateReaderAction`, `createRotateEditorAction`, `createRevokeAction`, `OWNER_ACTIONS`, verifiers |
+| `rotation` | `createRotateReaderAction`, `createRotateEditorAction`, `createRotatePasswordAction`, `createRevokeAction`, `OWNER_ACTIONS`, verifiers |
 | `signatures` | `keyPairFromSeed`, `signMessage`, `verifySignature` |
-| `messages` | `createNoteMessage`, `editNoteMessage`, `ownerActionMessage` |
+| `messages` | `createNoteMessage`, `editNoteMessage`, action-specific owner message builders, `ownerActionMessageFromWire` |
 | `protocol` | `createNotePayload`, `verifyCreateNotePayload`, `createEditPayload`, `verifyEditPayload`, owner action helpers |
 | `slug` | `normalizeSlug`, `validateSlug` |
 | `types` | Payload types, `KdfAlgorithm`, `PlaceContent` |

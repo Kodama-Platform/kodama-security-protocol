@@ -53,13 +53,14 @@ const encrypted = await encryptBytes(
 );
 
 const saltB64 = bytesToBase64(FIXED_SALT);
+const ivB64 = bytesToBase64(FIXED_IV);
 const createMessage = createNoteMessage({
   slug,
   productType,
   version,
   kdf: "argon2id",
   ciphertext: encrypted.ciphertext,
-  iv: encrypted.iv,
+  iv: ivB64,
   salt: saltB64,
   ownerPublicKey: owner.publicKey,
   editorPublicKeys: [editor.publicKey],
@@ -99,8 +100,8 @@ const vectors = {
     version,
     aad: `${slug}:${version}:${productType}`,
     iv_hex: bytesToHex(FIXED_IV),
-    ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv,
+    iv: ivB64,
+    ciphertext_hex: bytesToHex(encrypted.ciphertext),
   },
   create_note: {
     slug,
@@ -110,8 +111,8 @@ const vectors = {
     salt: saltB64,
     owner_public_key: owner.publicKey,
     editor_public_keys: [editor.publicKey],
-    ciphertext: encrypted.ciphertext,
-    iv: encrypted.iv,
+    iv: ivB64,
+    ciphertext_hex: bytesToHex(encrypted.ciphertext),
     canonical_message: createMessage,
     owner_signature: ownerSignature,
   },

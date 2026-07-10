@@ -1,5 +1,5 @@
-import type { EncryptedPayload } from "./types.js";
-import { base64ToBytes, bytesToBase64, utf8ToBytes } from "./encoding.js";
+import type { EncryptedBlob } from "./types.js";
+import { utf8ToBytes } from "./encoding.js";
 import { randomIv } from "./random.js";
 
 async function importAesKey(key: Uint8Array): Promise<CryptoKey> {
@@ -13,12 +13,12 @@ async function importAesKey(key: Uint8Array): Promise<CryptoKey> {
   );
 }
 
-/** Encrypt a compressed content blob with AES-256-GCM. */
+/** Encrypt a compressed content blob with AES-256-GCM. Returns raw bytes. */
 export async function encryptBytes(
   plaintext: Uint8Array,
   key: Uint8Array,
   aad?: string
-): Promise<EncryptedPayload> {
+): Promise<EncryptedBlob> {
   const iv = randomIv();
   const cryptoKey = await importAesKey(key);
   const ciphertext = await crypto.subtle.encrypt(
@@ -31,14 +31,14 @@ export async function encryptBytes(
     plaintext as unknown as BufferSource
   );
   return {
-    ciphertext: bytesToBase64(new Uint8Array(ciphertext)),
-    iv: bytesToBase64(iv),
+    ciphertext: new Uint8Array(ciphertext),
+    iv,
   };
 }
 
 /** Decrypt to a compressed content blob. Decompress separately before reading as text. */
 export async function decryptBytes(
-  payload: EncryptedPayload,
+  blob: EncryptedBlob,
   key: Uint8Array,
   aad?: string
 ): Promise<Uint8Array> {
@@ -46,11 +46,11 @@ export async function decryptBytes(
   const plaintext = await crypto.subtle.decrypt(
     {
       name: "AES-GCM",
-      iv: base64ToBytes(payload.iv) as unknown as BufferSource,
+      iv: blob.iv as unknown as BufferSource,
       additionalData: aad ? (utf8ToBytes(aad) as unknown as BufferSource) : undefined,
     },
     cryptoKey,
-    base64ToBytes(payload.ciphertext) as unknown as BufferSource
+    blob.ciphertext as unknown as BufferSource
   );
   return new Uint8Array(plaintext);
 }

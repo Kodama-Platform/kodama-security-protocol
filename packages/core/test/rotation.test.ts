@@ -4,11 +4,14 @@ import {
   createNotePayload,
   createRevokeAction,
   createRotateEditorAction,
+  createRotatePasswordAction,
   createRotateReaderAction,
   readWithCapability,
+  readWithPassword,
   verifyCreateNotePayload,
   verifyRevokeAction,
   verifyRotateEditorAction,
+  verifyRotatePasswordAction,
   verifyRotateReaderAction,
 } from "../src/index.js";
 
@@ -20,7 +23,7 @@ describe("rotation and revocation", () => {
       plaintext: "secret content",
     });
 
-    const { action, newReaderCapability } = await createRotateReaderAction({
+    const { action, ciphertext, newReaderCapability } = await createRotateReaderAction({
       slug: created.payload.slug,
       version: created.payload.version,
       password: "owner-password",
@@ -33,13 +36,14 @@ describe("rotation and revocation", () => {
       await verifyRotateReaderAction(
         action,
         created.payload.owner_public_key,
-        created.payload.version
+        created.payload.version,
+        ciphertext
       )
     ).toBe(true);
 
     const updatedPlace = {
       ...created.payload,
-      ciphertext: action.payload.ciphertext,
+      ciphertext,
       iv: action.payload.iv,
     };
 
@@ -49,6 +53,49 @@ describe("rotation and revocation", () => {
     await expect(
       readWithCapability(created.readerCapability, updatedPlace)
     ).rejects.toThrow();
+  });
+
+  it("rotates password and re-encrypts with new derived keys", async () => {
+    const created = await createNotePayload({
+      slug: "password-rotate",
+      password: "old-password",
+      plaintext: "secret note",
+    });
+
+    const rotated = await createRotatePasswordAction({
+      slug: created.payload.slug,
+      version: created.payload.version,
+      currentPassword: "old-password",
+      newPassword: "new-password",
+      place: created.payload,
+      ownerPrivateKey: created.ownerPrivateKey,
+    });
+
+    expect(rotated.action.action).toBe(OWNER_ACTIONS.ROTATE_PASSWORD);
+    expect(
+      await verifyRotatePasswordAction(
+        rotated.action,
+        created.payload.owner_public_key,
+        created.payload.version,
+        rotated.ciphertext
+      )
+    ).toBe(true);
+
+    const updatedPlace = {
+      slug: created.payload.slug,
+      product_type: created.payload.product_type,
+      version: created.payload.version,
+      kdf: rotated.action.payload.kdf,
+      salt: rotated.action.payload.salt,
+      ciphertext: rotated.ciphertext,
+      iv: rotated.action.payload.iv,
+    };
+
+    expect(await readWithPassword("new-password", updatedPlace)).toBe(
+      "secret note"
+    );
+    await expect(readWithPassword("old-password", updatedPlace)).rejects.toThrow();
+    expect(rotated.ownerPrivateKey).not.toBe(created.ownerPrivateKey);
   });
 
   it("rotates editor public keys", async () => {
@@ -138,7 +185,7 @@ describe("create verification edge cases", () => {
 
     const tampered = {
       ...created.payload,
-      ciphertext: created.payload.ciphertext.slice(0, -2) + "XX",
+      ciphertext: created.payload.ciphertext.slice(0, -1),
     };
 
     expect(await verifyCreateNotePayload(tampered)).toBe(false);

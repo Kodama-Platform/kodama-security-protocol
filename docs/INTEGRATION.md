@@ -21,7 +21,7 @@ This guide walks through integrating the Kodama Security Protocol into a Kodama 
 ### Client
 
 ```typescript
-import { createNotePayload } from "@kodama/ksp-core";
+import { buildCreateUploadFormData, createNotePayload } from "@kodama/ksp-core";
 
 async function createNote(slug: string, password: string, plaintext: string) {
   const result = await createNotePayload({
@@ -33,8 +33,7 @@ async function createNote(slug: string, password: string, plaintext: string) {
 
   const response = await fetch("/api/places", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(result.payload),
+    body: buildCreateUploadFormData(result.payload),
   });
 
   if (!response.ok) throw new Error("create failed");
@@ -48,12 +47,23 @@ async function createNote(slug: string, password: string, plaintext: string) {
 }
 ```
 
+Uploads use **multipart/form-data**: `metadata` (JSON, signatures and small fields) + `ciphertext` (raw binary). Avoid JSON.stringify on encrypted blobs.
+
 ### Server
 
 ```typescript
-import { verifyCreateNotePayload, validateSlug } from "@kodama/ksp-server";
+import {
+  mergeCreatePlacePayload,
+  parseBinaryUploadFormData,
+  verifyCreateNotePayload,
+  validateSlug,
+} from "@kodama/ksp-server";
 
-async function handleCreate(body: CreatePlacePayload) {
+async function handleCreate(request: Request) {
+  const form = await request.formData();
+  const { metadata, ciphertext } = await parseBinaryUploadFormData(form);
+  const body = mergeCreatePlacePayload(metadata as CreatePlaceMetadata, ciphertext);
+
   const slugCheck = validateSlug(body.slug);
   if (!slugCheck.ok) return { status: 400, error: slugCheck.error };
 
@@ -61,7 +71,7 @@ async function handleCreate(body: CreatePlacePayload) {
     return { status: 400, error: "invalid_signature" };
   }
 
-  // INSERT into places (see backend-schema.sql)
+  // INSERT into places (see backend-schema.sql) — store ciphertext as bytea
   await db.places.insert({
     slug: body.slug,
     product_type: body.product_type,
@@ -89,7 +99,7 @@ async function readAsOwner(
     slug: string;
     product_type: string;
     version: number;
-    ciphertext: string;
+    ciphertext: Uint8Array;
     iv: string;
     salt: string;
     kdf?: "argon2id" | "pbkdf2";
@@ -107,7 +117,7 @@ The read helper derives the correct KDF from `place.kdf` (defaults to `pbkdf2` w
 import { getFragmentCapability, readWithCapability } from "@kodama/ksp-browser";
 
 async function readFromFragment(
-  place: { slug: string; product_type: string; version: number; ciphertext: string; iv: string }
+  place: { slug: string; product_type: string; version: number; ciphertext: Uint8Array; iv: string }
 ) {
   const capability = getFragmentCapability("read");
   if (!capability) throw new Error("no read capability in URL");
@@ -123,7 +133,11 @@ async function readFromFragment(
 ### Client
 
 ```typescript
-import { base64ToBytes, createEditPayload } from "@kodama/ksp-core";
+import {
+  base64ToBytes,
+  buildEditUploadFormData,
+  createEditPayload,
+} from "@kodama/ksp-core";
 
 async function editNote(
   place: { slug: string; version: number; product_type: string; editor_public_keys: string[] },
@@ -144,8 +158,7 @@ async function editNote(
 
   const response = await fetch(`/api/places/${place.slug}/edits`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(editPayload),
+    body: buildEditUploadFormData(editPayload),
   });
 
   if (!response.ok) throw new Error("edit failed");
@@ -196,15 +209,30 @@ async function handleEdit(slug: string, body: EditPlacePayload) {
 import {
   createOwnerActionPayload,
   createRotateEditorAction,
+  createRotatePasswordAction,
   createRotateReaderAction,
   createRevokeAction,
   verifyOwnerActionPayload,
 } from "@kodama/ksp-core";
 import {
   verifyRotateEditorAction,
+  verifyRotatePasswordAction,
   verifyRotateReaderAction,
   verifyRevokeAction,
 } from "@kodama/ksp-server";
+
+// Change password (signed with current ownerPrivateKey)
+const rotated = await createRotatePasswordAction({
+  slug: place.slug,
+  version: place.version,
+  currentPassword: oldPassword,
+  newPassword: newPassword,
+  place,
+  ownerPrivateKey: secrets.ownerPrivateKey,
+});
+// Server: verifyRotatePasswordAction(rotated.action, place.owner_public_key, place.version)
+// Then replace salt, kdf, ciphertext, iv, owner_public_key, editor_public_keys
+// Client stores rotated.readerCapability, rotated.editorPrivateKey, rotated.ownerPrivateKey
 
 // Rotate reader capability (re-encrypts content, invalidates old capability)
 const { action, newReaderCapability } = await createRotateReaderAction({

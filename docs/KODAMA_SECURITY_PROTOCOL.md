@@ -1,5 +1,20 @@
 # Kodama Security Protocol v1
 
+## Document Guide
+
+This file serves two purposes:
+
+| Part | Sections | Status |
+|------|----------|--------|
+| **Reference implementation** | [§2 Reference Implementation (Normative)](#2-reference-implementation-normative) | Authoritative for `@kodama/ksp-core`. Matches the TypeScript packages, test vectors, and `docs/backend-schema.sql`. |
+| **Product architecture (planned)** | §3–§13 | Target Kodama Note product design. Includes features not yet in the reference library (CEK wrapping, object storage, owner sessions, etc.). |
+
+When integrating against `@kodama/ksp-core`, follow **§2** only. See the [divergence table](#213-divergence-from-product-architecture) before reading §3+.
+
+Related docs: [INTEGRATION.md](./INTEGRATION.md) · [AUDIT.md](./AUDIT.md) · [backend-schema.sql](./backend-schema.sql)
+
+---
+
 ## 1. Threat Model
 
 ### 1.1 Security Goal
@@ -55,11 +70,12 @@ These are generated or derived in the browser and must never be sent to or persi
 
 - **Plaintext note** — decrypted content; present in browser memory only during use
 - **Owner password** — root ownership credential; never transmitted
-- **Master secret** — `Argon2id(password, salt)`; derived locally from the password
-- **Content encryption key (CEK)** — symmetric key that encrypts note plaintext
-- **Reader capability** — secret that unwraps the CEK for read-only access
-- **Editor private key** — Ed25519 signing key; authorizes edits without granting ownership
-- **Owner authentication secret** — `HKDF(master_secret, "kodama:v1:owner-auth")`; proves ownership for admin actions (ownership is password-derived, not a separate asymmetric key pair)
+- **Master secret** — `Argon2id(password, salt)` by default; `PBKDF2` for legacy places (see [§2.3](#23-key-derivation))
+- **Read key** — HKDF-derived AES-256 key that encrypts note content (also used as the reader capability)
+- **Reader capability** — base64-encoded read key; shared via URL fragment `#read=<capability>`
+- **Editor private key** — Ed25519 signing seed; authorizes edits without granting ownership
+- **Owner private key** — Ed25519 signing seed derived from the password; signs create payloads and owner actions
+- **Compressed content blob** — gzip-compressed UTF-8 note bytes; encrypted as a blob (not plaintext strings)
 - **Share links** — capability-bearing URLs (fragment keys only; never the owner password)
 - **Version history (plaintext)** — prior note states; meaningful only after local decryption
 
@@ -69,14 +85,15 @@ Public or encrypted-at-rest metadata only:
 
 ```text
 slug
+product_type
+kdf
 ciphertext
 iv
 salt
 version
-editor public key
-owner authentication hash
+owner_public_key
+editor_public_keys
 timestamps
-crypto metadata
 ```
 
 #### Backend must never store
@@ -87,10 +104,10 @@ Any material that would allow decryption, impersonation, or owner actions withou
 plaintext note
 password
 master secret
-content encryption key
-reader capability
+read key / reader capability
 editor private key
-owner authentication secret
+owner private key
+compressed note blob (in memory)
 ```
 
 ---
@@ -311,7 +328,7 @@ Kodama cannot protect against compromised client devices.
 Kodama can honestly claim:
 
 ```text
-Notes are encrypted before leaving the browser.
+Notes are compressed and encrypted before leaving the browser.
 Passwords never leave the browser.
 Kodama cannot decrypt stored notes.
 Readers cannot edit.
@@ -330,9 +347,396 @@ Resistance to deletion or denial-of-service.
 Independent cryptographic audit unless one has been completed.
 ```
 
-## 2. Key Hierarchy
+---
 
-### 2.1 Design Principle
+## 2. Reference Implementation (Normative)
+
+This section is the authoritative specification for `@kodama/ksp-core` v0.1.0. Types and helpers live in `packages/core/src/`.
+
+### 2.1 Cryptographic Primitives
+
+| Purpose | Algorithm | Parameters |
+|---------|-----------|------------|
+| Password stretching (default) | Argon2id | m=65536 KiB (64 MiB), t=3, p=1, 32-byte output |
+| Password stretching (legacy) | PBKDF2-HMAC-SHA256 | 310,000 iterations, 32-byte output |
+| Capability derivation | HKDF-SHA256 | Domain-separated `info` strings, no salt |
+| Note compression | gzip | `CompressionStream` / `DecompressionStream` |
+| Content encryption | AES-256-GCM | 12-byte random IV, optional AAD |
+| Signatures | Ed25519 | 32-byte seed → key pair via `@noble/ed25519` |
+| Message digests | SHA-256 | Hex-encoded in canonical messages |
+| Wire encoding | Binary ciphertext + JSON metadata | Ciphertext as `Uint8Array` / `bytea` / `application/octet-stream`; base64 only for small JSON fields (keys, IV, salt, signatures) |
+
+Random material: 32-byte salt, 12-byte IV — from `crypto.getRandomValues`.
+
+### 2.2 Content Pipeline
+
+Notes are **compressed before encryption**. Encryption operates on binary blobs, not UTF-8 strings.
+
+```text
+write:  UTF-8 text → gzip (Uint8Array) → encryptBytes(blob) → EncryptedBlob
+wire:   metadata (JSON) + ciphertext (binary Uint8Array / multipart / octet-stream)
+read:   binary ciphertext → decryptBytes → gzip decompress → UTF-8 text
+sign:   canonical messages hash raw AES-GCM bytes, not base64 strings
+```
+
+Implementation:
+
+- `compressNoteText` / `decompressNoteText` — `packages/core/src/compress.ts`
+- `encryptBytes` / `decryptBytes` — return/consume `EncryptedBlob` (`Uint8Array` ciphertext + iv)
+- `wire.ts` — `buildBinaryUploadFormData`, `parseBinaryUploadFormData`, split/merge helpers for metadata + binary ciphertext
+- `bytesToBase64` / `base64ToBytes` — small JSON metadata only (IV, salt, keys, signatures); uses `Buffer` on Node.js
+
+### 2.3 Key Derivation
+
+```text
+Password + Salt
+  → Argon2id (default) or PBKDF2 (legacy)
+    → Master Secret (32 bytes)
+      → HKDF("kodama:v1:read")   → Read Key (32 bytes) — AES key + reader capability
+      → HKDF("kodama:v1:editor") → Editor Seed (32 bytes) → Ed25519 key pair
+      → HKDF("kodama:v1:owner")  → Owner Seed (32 bytes) → Ed25519 key pair
+```
+
+The read key encrypts note content directly. There is no separate random CEK or `wrapped_content_key` in the reference implementation.
+
+| Field | Format | Distribution |
+|-------|--------|--------------|
+| Read key | Base64 32-byte AES key | `#read=<capability>` URL fragment or out-of-band |
+| Editor private key | Base64 Ed25519 seed | Out-of-band only (never in URL) |
+| Owner private key | Base64 Ed25519 seed | Derived from password; never shared |
+| Public keys | Base64 Ed25519 public keys | Stored on backend |
+
+Legacy places omit `kdf` on read; clients default to `pbkdf2`.
+
+### 2.4 Additional Authenticated Data (AAD)
+
+AAD binds ciphertext to a specific place and version:
+
+```text
+{slug}:{version}:{product_type}
+```
+
+Example: `wallet:1:note`. Must be identical on encrypt and decrypt.
+
+### 2.5 Slug Rules
+
+**Normalize:** trim → lowercase → whitespace to `-` → strip invalid chars → collapse `-`.
+
+**Validate:** `^[a-z0-9-]{3,40}$`, not in reserved list (`admin`, `api`, `note`, …).
+
+### 2.6 Canonical Messages
+
+Newline-separated UTF-8 strings. Variable-length binary fields are represented by **SHA-256 hex digests of raw bytes**, not base64 strings.
+
+**Create note** (signed by owner private key):
+
+```text
+kodama:v1:create-note
+{slug}
+{product_type}
+{version}
+{kdf}
+sha256(raw_aes_gcm_ciphertext_bytes)
+{iv_base64}
+{salt_base64}
+{owner_public_key_base64}
+sha256(JSON.stringify(editor_public_keys))
+```
+
+**Edit note** (signed by editor private key):
+
+```text
+kodama:v1:edit-note
+{slug}
+{old_version}
+{new_version}
+sha256(raw_aes_gcm_ciphertext_bytes)
+{iv_base64}
+{editor_public_key_base64}
+```
+
+The `raw_aes_gcm_ciphertext_bytes` are the AES-256-GCM output over the **gzip-compressed** note blob (ciphertext includes the GCM authentication tag). API transports store the same bytes as **binary** (`bytea`, `application/octet-stream`, or a multipart `ciphertext` part)—never base64-encoded.
+
+**Owner actions** use action-specific canonical bodies. Encrypted fields hash **raw AES-GCM bytes** (same as create/edit), not `JSON.stringify` of base64 wire fields.
+
+`rotate-reader`:
+
+```text
+kodama:v1:owner-action
+{slug}
+rotate-reader
+{version}
+sha256(raw_aes_gcm_ciphertext_bytes)
+{iv_base64}
+```
+
+`rotate-password`:
+
+```text
+kodama:v1:owner-action
+{slug}
+rotate-password
+{version}
+{kdf}
+{salt_base64}
+sha256(raw_aes_gcm_ciphertext_bytes)
+{iv_base64}
+{owner_public_key_base64}
+sha256(JSON.stringify(editor_public_keys))
+```
+
+`rotate-editor`:
+
+```text
+kodama:v1:owner-action
+{slug}
+rotate-editor
+{version}
+sha256(JSON.stringify(editor_public_keys))
+```
+
+`revoke`:
+
+```text
+kodama:v1:owner-action
+{slug}
+revoke
+{version}
+{status}
+{reason_or_empty}
+```
+
+Custom owner actions (no binary fields) may use `sha256(JSON.stringify(payload))` as the final line. Use `ownerActionMessageFromWire()` when verifying wire payloads.
+
+### 2.7 Owner Signatures
+
+Owner-only operations are authorized by **Ed25519 signatures** using the owner private key (`ownerPrivateKey`). The backend stores `owner_public_key` and verifies signatures; it never sees the private key or password.
+
+| Operation | When signed | Key used | Wire field | Verified against |
+|-----------|-------------|----------|------------|------------------|
+| **Create note** | At place creation | New `ownerPrivateKey` (from password) | `owner_signature` on `CreatePlacePayload` | `owner_public_key` in the same payload |
+| **Password change** | On password rotation | **Current** `ownerPrivateKey` (old password) | `signature` on `OwnerActionPayload` | Stored `owner_public_key` |
+| **Admin actions** | On rotate/revoke/etc. | Current `ownerPrivateKey` | `signature` on `OwnerActionPayload` | Stored `owner_public_key` |
+
+#### Create note
+
+The client derives `ownerPrivateKey` from the password, builds the canonical [create message](#26-canonical-messages), signs it, and sends:
+
+```typescript
+{
+  // ...ciphertext, iv, salt, kdf, keys...
+  owner_public_key: string,
+  owner_signature: string,  // Ed25519 over kodama:v1:create-note message
+}
+```
+
+The server calls `verifyCreateNotePayload(payload)` before persisting. This proves the creator knew the password (only they could derive the matching owner key) and binds the encrypted blob to the declared public keys.
+
+Implementation: `createNotePayload()` in `packages/core/src/protocol.ts`.
+
+#### Password change
+
+Changing the password replaces **all** password-derived material: master secret, read key, editor keys, and owner key. The owner must:
+
+1. Unlock with the **current** password → derive current `ownerPrivateKey`.
+2. Decrypt the note with the current read key.
+3. Choose a new password → generate new salt → derive new read/editor/owner material.
+4. Re-compress and re-encrypt content with the new read key.
+5. Build an owner action with `action: "rotate-password"` and payload containing the new crypto fields.
+6. Sign with the **current** (old) `ownerPrivateKey`.
+7. Send to the server, which verifies against the **stored** `owner_public_key`.
+
+```typescript
+interface RotatePasswordPayload {
+  kdf: "argon2id" | "pbkdf2";
+  salt: string;                  // base64, JSON metadata
+  iv: string;                    // base64, JSON metadata
+  owner_public_key: string;      // from new password
+  editor_public_keys: string[];
+}
+// ciphertext: Uint8Array — binary, sent alongside metadata (not in JSON payload)
+```
+
+```typescript
+interface OwnerActionPayload<RotatePasswordPayload> {
+  slug: string;
+  action: "rotate-password";
+  version: number;               // current place version (unchanged)
+  payload: RotatePasswordPayload;
+  signature: string;             // signed with OLD ownerPrivateKey
+}
+```
+
+After the server accepts the action, it replaces `salt`, `kdf`, `ciphertext`, `iv`, `owner_public_key`, and `editor_public_keys`. The old password and old `ownerPrivateKey` no longer authorize anything. The client must retain the new `readerCapability`, `editorPrivateKey`, and `ownerPrivateKey` derived from the new password.
+
+> **Implementation:** `createNotePayload()`, `createRotatePasswordAction()`, and other helpers in `packages/core/src/protocol.ts` and `packages/core/src/rotation.ts`.
+
+#### Other owner actions
+
+All use the same [owner-action message](#26-canonical-messages) format and `createOwnerActionPayload()`:
+
+| `action` | Purpose |
+|----------|---------|
+| `rotate-reader` | Re-encrypt with a new random read key |
+| `rotate-editor` | Replace authorized editor public keys |
+| `rotate-password` | Replace password-derived keys and re-encrypt (spec above) |
+| `revoke` | Mark place revoked or archived |
+
+### 2.8 Wire Payloads
+
+Field names use `snake_case`. **Encrypted blobs are never base64-encoded.** Transport uses JSON metadata plus binary ciphertext.
+
+#### HTTP transport (recommended)
+
+```text
+POST /api/places
+Content-Type: multipart/form-data
+
+metadata   → application/json (slug, iv, salt, signatures, keys, …)
+ciphertext → application/octet-stream (raw AES-GCM bytes)
+```
+
+Alternative: `application/octet-stream` body with metadata in `X-KSP-Metadata` header.
+
+Helpers: `buildCreateUploadFormData`, `parseBinaryUploadFormData` in `packages/core/src/wire.ts`.
+
+#### In-memory / database types
+
+**Create place** (`CreatePlacePayload`):
+
+```typescript
+interface CreatePlacePayload {
+  slug: string;
+  product_type: string;       // default "note"
+  version: 1;
+  kdf: "argon2id" | "pbkdf2";
+  iv: string;                 // base64, small JSON field
+  salt: string;               // base64, small JSON field
+  owner_public_key: string;
+  editor_public_keys: string[];
+  owner_signature: string;
+  ciphertext: Uint8Array;     // binary — store as bytea, not text
+}
+```
+
+**Edit place** (`EditPlacePayload`):
+
+```typescript
+interface EditPlacePayload {
+  slug: string;
+  old_version: number;
+  new_version: number;        // must equal old_version + 1
+  iv: string;
+  editor_public_key: string;
+  signature: string;
+  ciphertext: Uint8Array;
+}
+```
+
+**Owner action** (JSON metadata only for actions that re-encrypt):
+
+```typescript
+interface OwnerActionPayload<T = unknown> {
+  slug: string;
+  action: string;
+  version: number;
+  payload: T;
+  signature: string;
+}
+
+interface RotateReaderPayload {
+  iv: string;                 // ciphertext is binary, sent separately
+}
+```
+
+### 2.9 Protocol Flows
+
+#### Create
+
+1. Normalize and validate slug.
+2. Generate salt; derive master secret (Argon2id default).
+3. Derive read key, editor key, owner key.
+4. `compressNoteText(plaintext)` → `encryptBytes(blob, readKey, AAD)`.
+5. Sign canonical create message with **owner private key** → set `owner_signature` on metadata.
+6. Upload via multipart (`metadata` + `ciphertext`); retain `readerCapability`, `editorPrivateKey`, `ownerPrivateKey` client-side.
+
+Server: reject create if `verifyCreateNotePayload(payload)` fails.
+
+#### Password change
+
+1. Derive **current** `ownerPrivateKey` from current password.
+2. Decrypt note with current read key.
+3. Derive new material from new password + new salt.
+4. Re-compress and re-encrypt with new read key.
+5. Build `rotate-password` owner action; sign with **current** `ownerPrivateKey`.
+6. Server verifies signature against stored `owner_public_key`, then updates crypto fields.
+
+See [§2.7 Owner Signatures](#27-owner-signatures) for payload shapes.
+
+#### Read (owner)
+
+1. Fetch place record.
+2. `readWithPassword(password, place)` — derives read key, decrypts, decompresses.
+
+#### Read (reader)
+
+1. Open URL with `#read=<base64-read-key>` (fragment not sent to server).
+2. `readWithCapability(capability, place)`.
+
+#### Edit
+
+1. Editor holds read key + editor private key.
+2. Compress new plaintext → encrypt with AAD `{slug}:{new_version}:{product_type}`.
+3. Sign edit message; server verifies version, authorized editor key, signature.
+
+#### Owner actions
+
+| Action | Payload | Effect |
+|--------|---------|--------|
+| `rotate-reader` | `{ ciphertext, iv }` | Re-encrypt with new random read key; old capability invalidated |
+| `rotate-editor` | `{ editor_public_keys: [...] }` | Replace authorized editor keys |
+| `rotate-password` | `{ kdf, salt, ciphertext, iv, owner_public_key, editor_public_keys }` | New password; re-encrypt; new owner/editor keys |
+| `revoke` | `{ status: "revoked" \| "archived", reason? }` | Mark place inactive |
+
+Helpers: `packages/core/src/rotation.ts` (`createRotateReaderAction`, `createRotateEditorAction`, `createRotatePasswordAction`, `createRevokeAction`). Server verifiers: `@kodama/ksp-server`.
+
+### 2.10 Backend Schema (Reference)
+
+See [`backend-schema.sql`](./backend-schema.sql). Core columns: `slug`, `product_type`, `kdf`, `ciphertext`, `iv`, `salt`, `version`, `owner_public_key`, `editor_public_keys`.
+
+### 2.11 Test Vectors
+
+Deterministic interop vectors: [`test-vectors/v1.json`](../test-vectors/v1.json). Regenerate with `npm run generate-vectors -w @kodama/ksp-core`.
+
+### 2.12 Reference API Surface
+
+| Client | Package | Key exports |
+|--------|---------|-------------|
+| Browser | `@kodama/ksp-browser` | Core + `getFragmentCapability`, `buildReadOnlyUrl` |
+| Server | `@kodama/ksp-server` | Verification helpers, slug validation |
+| Shared | `@kodama/ksp-core` | Full crypto and protocol |
+
+See [INTEGRATION.md](./INTEGRATION.md) for step-by-step flows.
+
+### 2.13 Divergence from Product Architecture
+
+| Topic | Reference implementation (§2) | Product architecture (§3+) |
+|-------|--------------------------------|------------------------------|
+| Content key | HKDF read key encrypts content directly | Random CEK + wrapped content key |
+| Owner auth | Ed25519 owner key + signatures | Password-derived `owner_auth_hash` + sessions |
+| Create proof | Owner signature over create message | Owner auth hash stored at creation |
+| Compression | gzip before AES-GCM | Not specified in product sections |
+| Storage | Ciphertext in DB row | Object storage + metadata DB |
+| Edit message | Newline canonical string | JSON + request_id + timestamp |
+| Password change | Owner action signed with old `ownerPrivateKey`; full re-encrypt | Session-based; may not re-encrypt (§9) |
+
+---
+
+## 3. Key Hierarchy (Product — Planned)
+
+> **Note:** This section and §4–§13 describe the target Kodama Note product architecture. For the shipped TypeScript library, use [§2 Reference Implementation](#2-reference-implementation-normative).
+
+### 3.1 Design Principle
 
 Kodama separates reading, editing, and ownership into independent cryptographic capabilities.
 
@@ -345,25 +749,25 @@ Password
         ▼
  Master Secret
         │
-        ├──────────────┐
-        │              │
-        ▼              ▼
- Reader Material   Owner Material
-        │
-        ▼
- Random Content Key
-        │
-        ▼
- Encrypt Note
+        ├────────────────┬────────────────┐
+        │                │                │
+        ▼                ▼                ▼
+ Reader Material   Editor Material   Owner Material
+        │                │                │
+        ▼                ▼                ▼
+ Random Content Key  Ed25519        Owner Auth
+        │           Key Pair         (hash/session)
+        ▼                │
+ Encrypt Note            └── signs edits (does not encrypt)
 ```
 
-Editing is independent.
+The editor branch is **orthogonal to encryption**: the editor key pair authorizes signed updates but does not wrap or encrypt note content. §3.6 describes the editor key pair; §3.4–§3.5 describe the read/CEK path.
 
-The editor uses a signing key pair.
+> **Reference implementation (`@kodama/ksp-core`):** use the diagram in [§2.3](#23-key-derivation) instead. It derives read, editor, and owner material directly from the master secret via HKDF — no random CEK, and the read key encrypts content.
 
 ---
 
-### 2.2 Root Secret
+### 3.2 Root Secret
 
 User chooses:
 
@@ -388,7 +792,7 @@ The password never leaves the browser.
 
 ---
 
-### 2.3 Master Secret
+### 3.3 Master Secret
 
 The master secret exists only in browser memory.
 
@@ -398,15 +802,18 @@ Independent values are derived using HKDF.
 reader_seed =
 HKDF(master_secret, "kodama:v1:reader")
 
+editor_seed =
+HKDF(master_secret, "kodama:v1:editor")
+
 owner_seed =
 HKDF(master_secret, "kodama:v1:owner")
 ```
 
-These values are cryptographically independent.
+These values are cryptographically independent. The editor seed becomes an Ed25519 signing key pair (§3.6); it does not participate in content encryption.
 
 ---
 
-### 2.4 Content Encryption Key
+### 3.4 Content Encryption Key
 
 Kodama uses a random Data Encryption Key.
 
@@ -432,7 +839,7 @@ The content key never leaves the browser in plaintext.
 
 ---
 
-### 2.5 Reader Capability
+### 3.5 Reader Capability
 
 The reader capability unlocks the content key.
 
@@ -454,9 +861,9 @@ The backend never receives the reader secret.
 
 ---
 
-### 2.6 Editor Key Pair
+### 3.6 Editor Key Pair
 
-The browser generates:
+The browser derives an Ed25519 key pair from `editor_seed` (§3.3):
 
 ```text
 editor_private_key
@@ -479,7 +886,7 @@ Ed25519
 
 ---
 
-### 2.7 Owner Authentication
+### 3.7 Owner Authentication
 
 Ownership is represented by the password.
 
@@ -516,7 +923,7 @@ Ownership is proven by knowledge of the password-derived owner authentication se
 
 ---
 
-### 2.8 Capability Levels
+### 3.8 Capability Levels
 
 #### Reader
 
@@ -592,7 +999,7 @@ manage
 
 ---
 
-### 2.9 Backend Storage
+### 3.9 Backend Storage
 
 ```text
 ciphertext
@@ -610,7 +1017,7 @@ No plaintext secrets are stored.
 
 ---
 
-### 2.10 Why This Is Zero-Knowledge
+### 3.10 Why This Is Zero-Knowledge
 
 Kodama stores only encrypted content and public verification material.
 
@@ -628,7 +1035,7 @@ Therefore the backend cannot decrypt notes or impersonate the owner.
 
 ---
 
-### 2.11 Key Rotation
+### 3.11 Key Rotation
 
 Kodama supports:
 
@@ -647,7 +1054,7 @@ Editor rotation changes future edit authorization.
 
 Full rotation replaces every capability.
 
-## 3. Create Note Protocol
+## 4. Create Note Protocol (Product — Planned)
 
 ### 3.1 Goal
 
@@ -882,7 +1289,7 @@ Backend cannot forge editor signatures.
 Backend cannot perform owner actions without the password-derived owner authentication secret.
 Database compromise reveals only encrypted data and public metadata.
 ```
-## 4. Read Protocol
+## 5. Read Protocol (Product — Planned)
 
 ### 4.1 Goal
 
@@ -1119,7 +1526,7 @@ Database compromise alone cannot reveal note content.
 
 ---
 
-## 5. Edit Protocol
+## 6. Edit Protocol (Product — Planned)
 
 ### 5.1 Goal
 
@@ -1327,7 +1734,7 @@ Permission enforcement is cryptographic.
 
 ---
 
-## 6. Owner/Admin Protocol
+## 7. Owner/Admin Protocol (Product — Planned)
 
 ### 6.1 Goal
 
@@ -1523,7 +1930,7 @@ Administrative actions require successful owner authentication.
 Password rotation revokes the previous password's owner privileges.
 Kodama provides no ownership transfer workflow.
 ```
-## 7. Sharing Protocol
+## 8. Sharing Protocol (Product — Planned)
 
 ### 7.1 Goal
 
@@ -1813,7 +2220,7 @@ Kodama provides no ownership transfer workflow.
 
 ---
 
-## 8. Rotation Protocol
+## 9. Rotation Protocol (Product — Planned)
 
 ### 8.1 Goal
 
@@ -1921,7 +2328,14 @@ If the editor also possessed the reader capability, perform Reader Rotation as w
 
 ---
 
+| URL fragment | `#read=<capability>` | `#reader_secret=...` |
+| HKDF labels | `kodama:v1:read`, `editor`, `owner` | `kodama:v1:reader`, `owner-auth` |
+
+---
+
 ### 8.5 Password Rotation
+
+> **Reference implementation:** password change uses a signed `rotate-password` owner action ([§2.7](#27-owner-signatures)), not owner auth hashes or sessions. Full re-encryption is required because the read key is password-derived.
 
 The password is the sole ownership credential.
 
@@ -2087,7 +2501,7 @@ Old cryptographic capabilities cannot access future protected versions.
 
 ---
 
-## 9. Access Loss Limitations
+## 10. Access Loss Limitations
 
 ### 9.1 Zero-Knowledge Model
 
@@ -2187,7 +2601,9 @@ This limitation is the direct consequence of providing true zero-knowledge secur
 
 ---
 
-## 10. Backend Database Schema
+## 11. Backend Database Schema (Product — Planned)
+
+> **Reference implementation:** use [`backend-schema.sql`](./backend-schema.sql) instead. It stores ciphertext inline (no object storage), includes `kdf` and `owner_public_key`, and omits `wrapped_content_key`.
 
 ### 10.1 Design Principle
 
@@ -2439,7 +2855,9 @@ Reader capability
 Content key
 Editor private key
 ```
-## 11. API Message Format
+## 12. API Message Format (Product — Planned)
+
+> **Reference implementation:** wire payloads and canonical message strings are defined in [§2.6](#26-canonical-messages) and [§2.7](#27-wire-payloads). Product API below uses JSON edit messages, object storage upload, and `wrapped_content_key` — not yet implemented in `@kodama/ksp-core`.
 
 ### 11.1 Design Principles
 
@@ -2640,13 +3058,13 @@ Payment APIs remain unchanged.
 Payments never receive encryption material.
 
 Payment providers never receive plaintext note content.
-## 12. Security Claims
+## 13. Security Claims
 
-### 12.1 Claims Kodama Can Make
+### 13.1 Claims Kodama Can Make
 
 Kodama can accurately claim:
 
-1. Notes are encrypted before leaving the browser.
+1. Notes are gzip-compressed and encrypted before leaving the browser.
 2. Kodama never receives user passwords.
 3. Kodama never stores plaintext note content.
 4. Kodama stores encrypted notes separately from metadata.
@@ -2663,7 +3081,7 @@ Kodama can accurately claim:
 
 ---
 
-### 12.2 Claims Kodama Must Not Make
+### 13.2 Claims Kodama Must Not Make
 
 Kodama should never claim:
 

@@ -7,9 +7,9 @@ create table places (
   slug text not null unique,                    -- normalized, validated client-side
   product_type text not null default 'note',    -- note, secret, drop, poll, room, link
   kdf text not null default 'argon2id',         -- argon2id | pbkdf2 (legacy)
-  ciphertext text not null,                     -- base64 AES-256-GCM ciphertext
-  iv text not null,                             -- base64 12-byte nonce
-  salt text not null,                           -- base64 32-byte PBKDF2 salt (public, not secret)
+  ciphertext bytea not null,                     -- raw AES-256-GCM ciphertext (no base64)
+  iv text not null,                             -- base64 12-byte nonce (JSON metadata)
+  salt text not null,                           -- base64 32-byte salt (JSON metadata)
   version integer not null default 1,           -- monotonic content version
   owner_public_key text not null,               -- base64 Ed25519 public key
   editor_public_keys jsonb not null default '[]'::jsonb,  -- base64 public keys authorized to edit
@@ -24,7 +24,7 @@ create table place_versions (
   id uuid primary key default gen_random_uuid(),
   place_id uuid not null references places(id) on delete cascade,
   version integer not null,
-  ciphertext text not null,
+  ciphertext bytea not null,
   iv text not null,
   signed_by text not null,                      -- editor public key that signed this version
   signature text not null,                      -- base64 Ed25519 signature

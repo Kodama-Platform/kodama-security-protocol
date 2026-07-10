@@ -72,8 +72,8 @@ describe("test vectors v1.json", () => {
     setRandomOverride((length) => (length === 12 ? iv : new Uint8Array(length)));
 
     const encrypted = await encryptBytes(compressed, readKey, aad);
-    expect(encrypted.ciphertext).toBe(vectors.encryption.ciphertext);
-    expect(encrypted.iv).toBe(vectors.encryption.iv);
+    expect(bytesToHex(encrypted.ciphertext)).toBe(vectors.encryption.ciphertext_hex);
+    expect(bytesToHex(encrypted.iv)).toBe(vectors.encryption.iv_hex);
 
     setRandomOverride(null);
   });

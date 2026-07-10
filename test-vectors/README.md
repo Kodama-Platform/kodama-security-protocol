@@ -24,7 +24,7 @@ Third-party implementations should verify against `v1.json`:
 2. **PBKDF2** — same password/salt, 310,000 iterations, SHA-256
 3. **HKDF** — info strings `kodama:v1:read`, `kodama:v1:editor`, `kodama:v1:owner`
 4. **Gzip compression** — UTF-8 note text compressed before encryption (`compression.compressed_hex` in vectors)
-5. **AES-256-GCM** — AAD `wallet:1:note`, fixed IV, encrypts compressed blob
+5. **AES-256-GCM** — AAD `wallet:1:note`, fixed IV; encrypts compressed blob; canonical messages hash **raw ciphertext bytes** (`encryption.ciphertext_hex`)
 6. **Create message** — canonical string in `create_note.canonical_message`, signed by owner key
 
 Automated verification runs in `packages/core/test/vectors.test.ts`.
