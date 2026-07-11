@@ -1,3 +1,5 @@
+export * from "./bundle.js";
+export * from "./bundle-protocol.js";
 export * from "./compress.js";
 export * from "./encoding.js";
 export * from "./encryption.js";

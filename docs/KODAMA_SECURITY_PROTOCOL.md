@@ -649,6 +649,43 @@ interface RotateReaderPayload {
 }
 ```
 
+#### Place bundle (multi-note / multi-tab)
+
+A place may contain **multiple encrypted notes** (tabs) and **attachments** (binary blobs). Each item uses the same `readKey` and AAD `{slug}:{version}:{product_type}` with its own IV. The editor assigns opaque `id`s; KSP does not define tab titles or order.
+
+**Share model:** one `readerCapability` (`base64(readKey)`) decrypts the **entire workbook** (all notes + attachments). No per-tab sharing.
+
+**Create bundle** (`CreatePlaceBundleMetadata` + `PlaceBundle`):
+
+```typescript
+interface EncryptedItem {
+  id: string;
+  iv: string;
+  ciphertext: Uint8Array;
+}
+
+interface PlaceBundle {
+  notes: EncryptedItem[];
+  attachments: EncryptedItem[];
+}
+```
+
+**Wire (multipart):**
+
+```text
+metadata           → JSON (signatures, salt, note/attachment id+iv index)
+note.{id}          → application/octet-stream (repeat)
+attachment.{id}    → application/octet-stream (repeat)
+```
+
+Helpers: `buildCreateBundleFormData`, `parseBundleFormData`, `createPlaceBundlePayload`, `verifyCreatePlaceBundlePayload` in `@kodama/ksp-core`.
+
+**Canonical messages:** `kodama:v1:create-place-bundle`, `kodama:v1:edit-place-bundle` — sign `bundle_digest` (SHA-256 over sorted item refs).
+
+**Owner actions (bundle rotation):** `rotate-reader-bundle`, `rotate-password-bundle` — payload includes `bundle_digest`; re-encrypted bundle sent as multipart.
+
+Legacy `storage_mode: legacy` single-blob places remain supported unchanged.
+
 ### 2.9 Protocol Flows
 
 #### Create

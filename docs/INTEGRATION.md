@@ -49,6 +49,77 @@ async function createNote(slug: string, password: string, plaintext: string) {
 
 Uploads use **multipart/form-data**: `metadata` (JSON, signatures and small fields) + `ciphertext` (raw binary). Avoid JSON.stringify on encrypted blobs.
 
+## Create Place Bundle (multi-tab)
+
+For Kodama Note and other multi-sheet products, use a **place bundle** — multiple encrypted notes (tabs) plus optional attachments. One `readerCapability` decrypts the entire workbook.
+
+### Client
+
+```typescript
+import {
+  buildCreateBundleFormData,
+  createPlaceBundlePayload,
+} from "@kodama/ksp-core";
+
+async function createWorkbook(slug: string, password: string) {
+  const result = await createPlaceBundlePayload({
+    slug,
+    password,
+    notes: [
+      { id: "overview", plaintext: "# Overview\nHello" },
+      { id: "budget", plaintext: "# Budget\n- item" },
+    ],
+    attachments: [
+      { id: "img-1", bytes: imageBytes },
+    ],
+  });
+
+  await fetch("/api/places", {
+    method: "POST",
+    body: buildCreateBundleFormData(result.metadata, result.bundle),
+  });
+
+  return {
+    readerCapability: result.readerCapability,
+    editorPrivateKey: result.editorPrivateKey,
+    ownerPrivateKey: result.ownerPrivateKey,
+  };
+}
+```
+
+### Server
+
+```typescript
+import {
+  mergeCreatePlaceBundlePayload,
+  parseBundleFormData,
+  verifyCreatePlaceBundlePayload,
+  validateSlug,
+} from "@kodama/ksp-server";
+
+async function handleCreateBundle(request: Request) {
+  const form = await request.formData();
+  const { metadata, bundle } = await parseBundleFormData(form);
+  const body = mergeCreatePlaceBundlePayload(
+    metadata as CreatePlaceBundleMetadata,
+    bundle
+  );
+
+  if (!validateSlug(body.metadata.slug).ok) {
+    return { status: 400, error: "invalid_slug" };
+  }
+  if (!(await verifyCreatePlaceBundlePayload(body.metadata, body.bundle))) {
+    return { status: 400, error: "invalid_signature" };
+  }
+
+  // INSERT places (storage_mode=bundle) + place_notes + place_attachments rows
+}
+```
+
+Read/decrypt: `readPlaceBundleWithPassword` or `readPlaceBundleWithCapability(readerCapability, placeBundleContent)`.
+
+Share: `buildReadOnlyUrl(url, readerCapability)` — full workbook access only.
+
 ### Server
 
 ```typescript

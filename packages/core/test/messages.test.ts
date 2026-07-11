@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   createNoteMessage,
+  createPlaceBundleMessage,
+  editPlaceBundleMessage,
   rotateReaderActionMessage,
+  rotateReaderBundleActionMessage,
   rotatePasswordActionMessage,
   revokeActionMessage,
   sha256Hex,
@@ -105,6 +108,72 @@ describe("canonical messages", () => {
         "2",
         "revoked",
         "compromised",
+      ].join("\n")
+    );
+  });
+
+  it("formats create-place-bundle with bundle digest", () => {
+    expect(
+      createPlaceBundleMessage({
+        slug: "wallet",
+        productType: "note",
+        version: 1,
+        kdf: "argon2id",
+        bundleDigest: "abc123",
+        salt: "salt-value",
+        ownerPublicKey: "owner-pk",
+        editorPublicKeys: ["editor-pk"],
+      })
+    ).toBe(
+      [
+        "kodama:v1:create-place-bundle",
+        "wallet",
+        "note",
+        "1",
+        "argon2id",
+        "abc123",
+        "salt-value",
+        "owner-pk",
+        sha256Hex(JSON.stringify(["editor-pk"])),
+      ].join("\n")
+    );
+  });
+
+  it("formats edit-place-bundle with bundle digest", () => {
+    expect(
+      editPlaceBundleMessage({
+        slug: "wallet",
+        oldVersion: 1,
+        newVersion: 2,
+        bundleDigest: "digest-hex",
+        editorPublicKey: "editor-pk",
+      })
+    ).toBe(
+      [
+        "kodama:v1:edit-place-bundle",
+        "wallet",
+        "1",
+        "2",
+        "digest-hex",
+        "editor-pk",
+      ].join("\n")
+    );
+  });
+
+  it("formats rotate-reader-bundle with bundle digest", () => {
+    expect(
+      rotateReaderBundleActionMessage({
+        slug: "wallet",
+        version: 2,
+        bundleDigest: "digest-hex",
+      })
+    ).toBe(
+      [
+        "kodama:v1:owner-action",
+        "wallet",
+        "rotate-reader-bundle",
+        "2",
+        "digest-hex",
       ].join("\n")
     );
   });

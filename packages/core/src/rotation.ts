@@ -1,3 +1,9 @@
+import { bundleDigestFromPlaceBundle } from "./bundle.js";
+import {
+  decryptPlaceBundle,
+  reencryptPlaceBundle,
+  readPlaceBundleWithPassword,
+} from "./bundle-protocol.js";
 import { compressNoteText } from "./compress.js";
 import { bytesToBase64 } from "./encoding.js";
 import { encryptBytes } from "./encryption.js";
@@ -12,12 +18,17 @@ import { buildContentAad, readWithPassword } from "./read.js";
 import { keyPairFromSeed } from "./signatures.js";
 import type { KdfAlgorithm } from "./types.js";
 import type {
+  BinaryBundleOwnerAction,
   BinaryOwnerAction,
   OwnerActionPayload,
+  PlaceBundle,
+  PlaceBundleContent,
   PlaceContent,
   RevokePayload,
   RotateEditorPayload,
+  RotatePasswordBundlePayload,
   RotatePasswordPayload,
+  RotateReaderBundlePayload,
   RotateReaderPayload,
 } from "./types.js";
 
@@ -31,6 +42,18 @@ export interface RotateReaderResult extends BinaryOwnerAction<RotateReaderPayloa
 }
 
 export interface RotatePasswordResult extends BinaryOwnerAction<RotatePasswordPayload> {
+  readerCapability: string;
+  editorPrivateKey: string;
+  ownerPrivateKey: string;
+}
+
+export interface RotateReaderBundleResult
+  extends BinaryBundleOwnerAction<RotateReaderBundlePayload> {
+  newReaderCapability: string;
+}
+
+export interface RotatePasswordBundleResult
+  extends BinaryBundleOwnerAction<RotatePasswordBundlePayload> {
   readerCapability: string;
   editorPrivateKey: string;
   ownerPrivateKey: string;
@@ -193,5 +216,119 @@ export async function verifyRevokeAction(
   expectedVersion: number
 ): Promise<boolean> {
   if (payload.action !== OWNER_ACTIONS.REVOKE) return false;
+  return verifyOwnerActionPayload(payload, ownerPublicKey, expectedVersion);
+}
+
+/** Re-encrypt a place bundle with a new read key. Invalidates prior reader capabilities. */
+export async function createRotateReaderBundleAction(args: {
+  slug: string;
+  version: number;
+  password: string;
+  place: PlaceBundleContent;
+  ownerPrivateKey: string;
+}): Promise<RotateReaderBundleResult> {
+  const decrypted = await readPlaceBundleWithPassword(args.password, args.place);
+  const newReadKey = randomBytes(32);
+  const bundle = await reencryptPlaceBundle({
+    slug: args.slug,
+    version: args.version,
+    productType: args.place.product_type,
+    decrypted,
+    readKey: newReadKey,
+  });
+  const digest = bundleDigestFromPlaceBundle(bundle);
+  const actionPayload: RotateReaderBundlePayload = { bundle_digest: digest };
+  const action = await createOwnerActionPayload({
+    slug: args.slug,
+    action: OWNER_ACTIONS.ROTATE_READER_BUNDLE,
+    version: args.version,
+    payload: actionPayload,
+    ownerPrivateKey: args.ownerPrivateKey,
+  });
+  return {
+    action,
+    bundle,
+    newReaderCapability: bytesToBase64(newReadKey),
+  };
+}
+
+/** Replace password-derived keys and re-encrypt a place bundle. */
+export async function createRotatePasswordBundleAction(args: {
+  slug: string;
+  version: number;
+  currentPassword: string;
+  newPassword: string;
+  place: PlaceBundleContent;
+  ownerPrivateKey: string;
+  kdf?: KdfAlgorithm;
+}): Promise<RotatePasswordBundleResult> {
+  const decrypted = await readPlaceBundleWithPassword(
+    args.currentPassword,
+    args.place
+  );
+  const kdf = args.kdf ?? "argon2id";
+  const saltBytes = randomSalt();
+  const salt = bytesToBase64(saltBytes);
+  const material = await deriveKspMaterialFromPassword(
+    args.newPassword,
+    saltBytes,
+    kdf
+  );
+  const editor = await keyPairFromSeed(material.editorSeed);
+  const owner = await keyPairFromSeed(material.ownerSeed);
+  const bundle = await reencryptPlaceBundle({
+    slug: args.slug,
+    version: args.version,
+    productType: args.place.product_type,
+    decrypted,
+    readKey: material.readKey,
+  });
+  const digest = bundleDigestFromPlaceBundle(bundle);
+  const actionPayload: RotatePasswordBundlePayload = {
+    kdf,
+    salt,
+    bundle_digest: digest,
+    owner_public_key: owner.publicKey,
+    editor_public_keys: [editor.publicKey],
+  };
+  const action = await createOwnerActionPayload({
+    slug: args.slug,
+    action: OWNER_ACTIONS.ROTATE_PASSWORD_BUNDLE,
+    version: args.version,
+    payload: actionPayload,
+    ownerPrivateKey: args.ownerPrivateKey,
+  });
+  return {
+    action,
+    bundle,
+    readerCapability: bytesToBase64(material.readKey),
+    editorPrivateKey: editor.privateKey,
+    ownerPrivateKey: owner.privateKey,
+  };
+}
+
+export async function verifyRotateReaderBundleAction(
+  payload: OwnerActionPayload<RotateReaderBundlePayload>,
+  ownerPublicKey: string,
+  expectedVersion: number,
+  bundle: PlaceBundle
+): Promise<boolean> {
+  if (payload.action !== OWNER_ACTIONS.ROTATE_READER_BUNDLE) return false;
+  if (payload.payload.bundle_digest !== bundleDigestFromPlaceBundle(bundle)) {
+    return false;
+  }
+  return verifyOwnerActionPayload(payload, ownerPublicKey, expectedVersion);
+}
+
+export async function verifyRotatePasswordBundleAction(
+  payload: OwnerActionPayload<RotatePasswordBundlePayload>,
+  ownerPublicKey: string,
+  expectedVersion: number,
+  bundle: PlaceBundle
+): Promise<boolean> {
+  if (payload.action !== OWNER_ACTIONS.ROTATE_PASSWORD_BUNDLE) return false;
+  if (payload.payload.bundle_digest !== bundleDigestFromPlaceBundle(bundle)) {
+    return false;
+  }
   return verifyOwnerActionPayload(payload, ownerPublicKey, expectedVersion);
 }

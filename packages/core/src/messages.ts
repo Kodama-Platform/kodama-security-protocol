@@ -3,7 +3,9 @@ import type {
   KdfAlgorithm,
   RevokePayload,
   RotateEditorPayload,
+  RotatePasswordBundlePayload,
   RotatePasswordPayload,
+  RotateReaderBundlePayload,
   RotateReaderPayload,
 } from "./types.js";
 
@@ -53,10 +55,52 @@ export function editNoteMessage(args: {
   ].join("\n");
 }
 
+export function createPlaceBundleMessage(args: {
+  slug: string;
+  productType: string;
+  version: number;
+  kdf: KdfAlgorithm;
+  bundleDigest: string;
+  salt: string;
+  ownerPublicKey: string;
+  editorPublicKeys: string[];
+}): string {
+  return [
+    "kodama:v1:create-place-bundle",
+    args.slug,
+    args.productType,
+    String(args.version),
+    args.kdf,
+    args.bundleDigest,
+    args.salt,
+    args.ownerPublicKey,
+    sha256Hex(JSON.stringify(args.editorPublicKeys)),
+  ].join("\n");
+}
+
+export function editPlaceBundleMessage(args: {
+  slug: string;
+  oldVersion: number;
+  newVersion: number;
+  bundleDigest: string;
+  editorPublicKey: string;
+}): string {
+  return [
+    "kodama:v1:edit-place-bundle",
+    args.slug,
+    String(args.oldVersion),
+    String(args.newVersion),
+    args.bundleDigest,
+    args.editorPublicKey,
+  ].join("\n");
+}
+
 export const OWNER_ACTION_NAMES = {
   ROTATE_READER: "rotate-reader",
+  ROTATE_READER_BUNDLE: "rotate-reader-bundle",
   ROTATE_EDITOR: "rotate-editor",
   ROTATE_PASSWORD: "rotate-password",
+  ROTATE_PASSWORD_BUNDLE: "rotate-password-bundle",
   REVOKE: "revoke",
 } as const;
 
@@ -109,6 +153,42 @@ export function rotatePasswordActionMessage(args: {
     args.salt,
     sha256Hex(args.ciphertext),
     args.iv,
+    args.ownerPublicKey,
+    sha256Hex(JSON.stringify(args.editorPublicKeys)),
+  ].join("\n");
+}
+
+export function rotateReaderBundleActionMessage(args: {
+  slug: string;
+  version: number;
+  bundleDigest: string;
+}): string {
+  return [
+    "kodama:v1:owner-action",
+    args.slug,
+    OWNER_ACTION_NAMES.ROTATE_READER_BUNDLE,
+    String(args.version),
+    args.bundleDigest,
+  ].join("\n");
+}
+
+export function rotatePasswordBundleActionMessage(args: {
+  slug: string;
+  version: number;
+  kdf: KdfAlgorithm;
+  salt: string;
+  bundleDigest: string;
+  ownerPublicKey: string;
+  editorPublicKeys: string[];
+}): string {
+  return [
+    "kodama:v1:owner-action",
+    args.slug,
+    OWNER_ACTION_NAMES.ROTATE_PASSWORD_BUNDLE,
+    String(args.version),
+    args.kdf,
+    args.salt,
+    args.bundleDigest,
     args.ownerPublicKey,
     sha256Hex(JSON.stringify(args.editorPublicKeys)),
   ].join("\n");
@@ -187,6 +267,26 @@ export function ownerActionMessageFromWire(args: {
         salt: payload.salt,
         ciphertext: args.ciphertext,
         iv: payload.iv,
+        ownerPublicKey: payload.owner_public_key,
+        editorPublicKeys: payload.editor_public_keys,
+      });
+    }
+    case OWNER_ACTION_NAMES.ROTATE_READER_BUNDLE: {
+      const payload = args.payload as RotateReaderBundlePayload;
+      return rotateReaderBundleActionMessage({
+        slug: args.slug,
+        version: args.version,
+        bundleDigest: payload.bundle_digest,
+      });
+    }
+    case OWNER_ACTION_NAMES.ROTATE_PASSWORD_BUNDLE: {
+      const payload = args.payload as RotatePasswordBundlePayload;
+      return rotatePasswordBundleActionMessage({
+        slug: args.slug,
+        version: args.version,
+        kdf: payload.kdf,
+        salt: payload.salt,
+        bundleDigest: payload.bundle_digest,
         ownerPublicKey: payload.owner_public_key,
         editorPublicKeys: payload.editor_public_keys,
       });

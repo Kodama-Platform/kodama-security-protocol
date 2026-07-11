@@ -6,12 +6,14 @@ import {
   bytesToHex,
   compressNoteText,
   createNotePayload,
+  createPlaceBundlePayload,
   deriveKspMaterial,
   deriveMasterSecretArgon2id,
   deriveMasterSecretPbkdf2,
   encryptBytes,
   normalizeSlug,
   verifyCreateNotePayload,
+  verifyCreatePlaceBundlePayload,
 } from "../src/index.js";
 import { setRandomOverride } from "../src/random.js";
 
@@ -96,6 +98,35 @@ describe("test vectors v1.json", () => {
 
     expect(created.payload.owner_signature).toBe(vectors.create_note.owner_signature);
     expect(await verifyCreateNotePayload(created.payload)).toBe(true);
+
+    setRandomOverride(null);
+  });
+
+  it("matches create-place-bundle signature", async () => {
+    const salt = hexToBytes(vectors.kdf.argon2id.salt_hex);
+    const iv = hexToBytes(vectors.encryption.iv_hex);
+
+    setRandomOverride((length) => {
+      if (length === 32) return salt;
+      if (length === 12) return iv;
+      return new Uint8Array(length);
+    });
+
+    const created = await createPlaceBundlePayload({
+      slug: vectors.create_place_bundle.slug,
+      password: vectors.kdf.argon2id.password,
+      notes: [
+        { id: "tab-a", plaintext: "tab a content" },
+        { id: "tab-b", plaintext: "tab b content" },
+      ],
+    });
+
+    expect(created.metadata.owner_signature).toBe(
+      vectors.create_place_bundle.owner_signature
+    );
+    expect(await verifyCreatePlaceBundlePayload(created.metadata, created.bundle)).toBe(
+      true
+    );
 
     setRandomOverride(null);
   });

@@ -1,6 +1,6 @@
 {
   "version": "ksp-v1",
-  "generated_at": "2026-07-09T22:04:31.664Z",
+  "generated_at": "2026-07-10T07:03:33.029Z",
   "kdf": {
     "argon2id": {
       "params": {
@@ -53,6 +53,35 @@
     "ciphertext_hex": "bad73cc0a040ab88c7632a54e9c8861c7cd60d529708cea4316df67725423ab8d22fd3d35a98ed9e8101cee265526565",
     "canonical_message": "kodama:v1:create-note\nwallet\nnote\n1\nargon2id\n1ded27fc28c3fb436cfd27d5c94b513b4ea0bc1236d73a67109f38817afc87d5\nERERERERERERERER\nQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=\nqLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=\n361cd4e736713be17233b392cf5f6e5673c8e45240397b96416595d2e3a55a87",
     "owner_signature": "e112T6a/LSYfLRXd1/WXGEry/shhNtTjG1f8YUwv2wm3QXlX0FIjoSnbIT+ry0Nahx7rok7XLMyYZdzv569RDA=="
+  },
+  "create_place_bundle": {
+    "slug": "wallet",
+    "product_type": "note",
+    "version": 1,
+    "kdf": "argon2id",
+    "salt": "QkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=",
+    "owner_public_key": "qLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=",
+    "editor_public_keys": [
+      "PKe9OGfrlc8sh/zCgOdIKXpWXL+TorKzhhmI6eC3IlM="
+    ],
+    "notes": [
+      {
+        "id": "tab-a",
+        "iv": "ERERERERERERERER"
+      },
+      {
+        "id": "tab-b",
+        "iv": "ERERERERERERERER"
+      }
+    ],
+    "attachments": [],
+    "bundle_digest": "31d00d0ae193b7db05f13fc1166d9d9d16dc1551d200df82a88ea9721070040b",
+    "canonical_message": "kodama:v1:create-place-bundle\nwallet\nnote\n1\nargon2id\n31d00d0ae193b7db05f13fc1166d9d9d16dc1551d200df82a88ea9721070040b\nQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkJCQkI=\nqLas057z0njFi9q7Ua5xrvZ8M2Dz9bohtHS8hQj72kQ=\n361cd4e736713be17233b392cf5f6e5673c8e45240397b96416595d2e3a55a87",
+    "owner_signature": "RDQFutnEIYg7q9ZiQytirr7RmwALTzPy0FNNapLp0YnHsZqngQBwA1oq2q8QpgGMiooa147Ua8HfpVh9A6UiDA==",
+    "note_ciphertext_hex": {
+      "tab-a": "bad73cc0a040ab88c763ca556853071ffcd68d301288e1a575b4a636794f3ab838e7fc1e5e7036d53e1734c288659ecfab",
+      "tab-b": "bad73cc0a040ab88c763ca5568530719fcd68d301288e1a575719abb404f3ab838e5d9c3c7ba0c95970913c314fdabad98"
+    }
   },
   "slug": {
     "cases": [

@@ -24,7 +24,9 @@ npm run generate-vectors -w @kodama/ksp-core
 | `keys` | `deriveKspMaterial`, `deriveKspMaterialFromPassword`, `deriveCapability` |
 | `compress` | `compressNoteText`, `decompressNoteText`, `compressBytes`, `decompressBytes` |
 | `encryption` | `encryptBytes`, `decryptBytes` |
-| `wire` | `buildBinaryUploadFormData`, `parseBinaryUploadFormData`, `buildCreateUploadFormData`, split/merge helpers |
+| `bundle` | `bundleDigest`, `bundleDigestFromPlaceBundle`, `validatePlaceBundle` |
+| `bundle-protocol` | `createPlaceBundlePayload`, `verifyCreatePlaceBundlePayload`, `createEditBundlePayload`, `verifyEditBundlePayload`, `decryptPlaceBundle`, `readPlaceBundleWithCapability` |
+| `wire` | `buildBinaryUploadFormData`, `buildCreateBundleFormData`, `parseBundleFormData`, split/merge helpers |
 | `read` | `readWithPassword`, `readWithCapability`, `readWithReadKey`, `buildContentAad`, `deriveReadKeyFromPassword` |
 | `rotation` | `createRotateReaderAction`, `createRotateEditorAction`, `createRotatePasswordAction`, `createRevokeAction`, `OWNER_ACTIONS`, verifiers |
 | `signatures` | `keyPairFromSeed`, `signMessage`, `verifySignature` |

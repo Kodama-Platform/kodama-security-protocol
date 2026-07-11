@@ -26,5 +26,6 @@ Third-party implementations should verify against `v1.json`:
 4. **Gzip compression** — UTF-8 note text compressed before encryption (`compression.compressed_hex` in vectors)
 5. **AES-256-GCM** — AAD `wallet:1:note`, fixed IV; encrypts compressed blob; canonical messages hash **raw ciphertext bytes** (`encryption.ciphertext_hex`)
 6. **Create message** — canonical string in `create_note.canonical_message`, signed by owner key
+7. **Place bundle** — `create_place_bundle` with two notes, `bundle_digest`, per-note `note_ciphertext_hex`
 
 Automated verification runs in `packages/core/test/vectors.test.ts`.

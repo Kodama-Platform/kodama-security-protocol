@@ -4,10 +4,13 @@ import { fileURLToPath } from "node:url";
 import {
   ARGON2ID_PARAMS,
   PBKDF2_ITERATIONS,
+  bundleDigestFromPlaceBundle,
   bytesToBase64,
   bytesToHex,
   compressNoteText,
   createNoteMessage,
+  createPlaceBundleMessage,
+  createPlaceBundlePayload,
   deriveKspMaterial,
   deriveMasterSecretArgon2id,
   deriveMasterSecretPbkdf2,
@@ -67,6 +70,27 @@ const createMessage = createNoteMessage({
 });
 const ownerSignature = await signMessage(owner.privateKey, createMessage);
 
+const bundleCreated = await createPlaceBundlePayload({
+  slug,
+  password,
+  productType,
+  notes: [
+    { id: "tab-a", plaintext: "tab a content" },
+    { id: "tab-b", plaintext: "tab b content" },
+  ],
+});
+const bundleDigest = bundleDigestFromPlaceBundle(bundleCreated.bundle);
+const bundleCreateMessage = createPlaceBundleMessage({
+  slug,
+  productType,
+  version,
+  kdf: "argon2id",
+  bundleDigest,
+  salt: saltB64,
+  ownerPublicKey: owner.publicKey,
+  editorPublicKeys: [editor.publicKey],
+});
+
 const vectors = {
   version: "ksp-v1",
   generated_at: new Date().toISOString(),
@@ -115,6 +139,26 @@ const vectors = {
     ciphertext_hex: bytesToHex(encrypted.ciphertext),
     canonical_message: createMessage,
     owner_signature: ownerSignature,
+  },
+  create_place_bundle: {
+    slug,
+    product_type: productType,
+    version,
+    kdf: "argon2id",
+    salt: saltB64,
+    owner_public_key: bundleCreated.metadata.owner_public_key,
+    editor_public_keys: bundleCreated.metadata.editor_public_keys,
+    notes: bundleCreated.metadata.notes,
+    attachments: bundleCreated.metadata.attachments,
+    bundle_digest: bundleDigest,
+    canonical_message: bundleCreateMessage,
+    owner_signature: bundleCreated.metadata.owner_signature,
+    note_ciphertext_hex: Object.fromEntries(
+      bundleCreated.bundle.notes.map((note) => [
+        note.id,
+        bytesToHex(note.ciphertext),
+      ])
+    ),
   },
   slug: {
     cases: [
