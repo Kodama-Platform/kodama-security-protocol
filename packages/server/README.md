@@ -1,11 +1,11 @@
-# @kodama/ksp-server
+# @kodama.page/ksp-server
 
 Server-side verification helpers for the Kodama Security Protocol. Use this package in API routes, workers, or backend services to validate signed payloads without handling secrets.
 
 ## Install
 
 ```bash
-npm install @kodama/ksp-server
+npm install @kodama.page/ksp-server
 ```
 
 ## Exports
@@ -30,7 +30,7 @@ import {
   verifyCreateNotePayload,
   verifyEditPayload,
   verifyRotateReaderAction,
-} from "@kodama/ksp-server";
+} from "@kodama.page/ksp-server";
 
 app.post("/api/places/:slug/owner-actions", async (req, res) => {
   const place = await getPlace(req.params.slug);

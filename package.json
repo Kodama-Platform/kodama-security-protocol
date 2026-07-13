@@ -8,10 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @kodama/ksp-core && npm run build -w @kodama/ksp-browser && npm run build -w @kodama/ksp-server",
+    "build": "npm run build -w @kodama.page/ksp-core && npm run build -w @kodama.page/ksp-browser && npm run build -w @kodama.page/ksp-server",
     "test": "npm run test -ws",
     "typecheck": "npm run typecheck -ws",
-    "generate-vectors": "npm run generate-vectors -w @kodama/ksp-core"
+    "generate-vectors": "npm run generate-vectors -w @kodama.page/ksp-core"
   },
   "devDependencies": {
     "typescript": "^5.5.4",

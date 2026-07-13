@@ -5,23 +5,23 @@ This guide walks through integrating the Kodama Security Protocol into a Kodama 
 ## Prerequisites
 
 - Node.js 18+ (for `crypto.subtle` and Web Crypto in the reference implementation)
-- `@kodama/ksp-core` on the client
-- `@kodama/ksp-server` on the backend
+- `@kodama.page/ksp-core` on the client
+- `@kodama.page/ksp-server` on the backend
 
 ## Package Selection
 
 | Runtime | Package | Exports used |
 |---------|---------|--------------|
-| Browser / React / Next.js client | `@kodama/ksp-browser` | All of core, plus `getFragmentCapability`, `buildReadOnlyUrl` |
-| Node.js / Edge API | `@kodama/ksp-server` | `verifyCreateNotePayload`, `verifyEditPayload`, `verifyOwnerActionPayload`, slug helpers |
-| Shared isomorphic logic | `@kodama/ksp-core` | Full API |
+| Browser / React / Next.js client | `@kodama.page/ksp-browser` | All of core, plus `getFragmentCapability`, `buildReadOnlyUrl` |
+| Node.js / Edge API | `@kodama.page/ksp-server` | `verifyCreateNotePayload`, `verifyEditPayload`, `verifyOwnerActionPayload`, slug helpers |
+| Shared isomorphic logic | `@kodama.page/ksp-core` | Full API |
 
 ## Create Flow
 
 ### Client
 
 ```typescript
-import { buildCreateUploadFormData, createNotePayload } from "@kodama/ksp-core";
+import { buildCreateUploadFormData, createNotePayload } from "@kodama.page/ksp-core";
 
 async function createNote(slug: string, password: string, plaintext: string) {
   const result = await createNotePayload({
@@ -59,7 +59,7 @@ For Kodama Note and other multi-sheet products, use a **place bundle** — multi
 import {
   buildCreateBundleFormData,
   createPlaceBundlePayload,
-} from "@kodama/ksp-core";
+} from "@kodama.page/ksp-core";
 
 async function createWorkbook(slug: string, password: string) {
   const result = await createPlaceBundlePayload({
@@ -95,7 +95,7 @@ import {
   parseBundleFormData,
   verifyCreatePlaceBundlePayload,
   validateSlug,
-} from "@kodama/ksp-server";
+} from "@kodama.page/ksp-server";
 
 async function handleCreateBundle(request: Request) {
   const form = await request.formData();
@@ -128,7 +128,7 @@ import {
   parseBinaryUploadFormData,
   verifyCreateNotePayload,
   validateSlug,
-} from "@kodama/ksp-server";
+} from "@kodama.page/ksp-server";
 
 async function handleCreate(request: Request) {
   const form = await request.formData();
@@ -162,7 +162,7 @@ async function handleCreate(request: Request) {
 ## Read Flow (Owner)
 
 ```typescript
-import { readWithPassword } from "@kodama/ksp-core";
+import { readWithPassword } from "@kodama.page/ksp-core";
 
 async function readAsOwner(
   password: string,
@@ -185,7 +185,7 @@ The read helper derives the correct KDF from `place.kdf` (defaults to `pbkdf2` w
 ## Read Flow (Reader via URL Fragment)
 
 ```typescript
-import { getFragmentCapability, readWithCapability } from "@kodama/ksp-browser";
+import { getFragmentCapability, readWithCapability } from "@kodama.page/ksp-browser";
 
 async function readFromFragment(
   place: { slug: string; product_type: string; version: number; ciphertext: Uint8Array; iv: string }
@@ -208,7 +208,7 @@ import {
   base64ToBytes,
   buildEditUploadFormData,
   createEditPayload,
-} from "@kodama/ksp-core";
+} from "@kodama.page/ksp-core";
 
 async function editNote(
   place: { slug: string; version: number; product_type: string; editor_public_keys: string[] },
@@ -239,7 +239,7 @@ async function editNote(
 ### Server
 
 ```typescript
-import { verifyEditPayload } from "@kodama/ksp-server";
+import { verifyEditPayload } from "@kodama.page/ksp-server";
 
 async function handleEdit(slug: string, body: EditPlacePayload) {
   const place = await db.places.findBySlug(slug);
@@ -284,13 +284,13 @@ import {
   createRotateReaderAction,
   createRevokeAction,
   verifyOwnerActionPayload,
-} from "@kodama/ksp-core";
+} from "@kodama.page/ksp-core";
 import {
   verifyRotateEditorAction,
   verifyRotatePasswordAction,
   verifyRotateReaderAction,
   verifyRevokeAction,
-} from "@kodama/ksp-server";
+} from "@kodama.page/ksp-server";
 
 // Change password (signed with current ownerPrivateKey)
 const rotated = await createRotatePasswordAction({
@@ -348,7 +348,7 @@ const ok = await verifyOwnerActionPayload(action, place.owner_public_key);
 ## Sharing Read-Only Access
 
 ```typescript
-import { buildReadOnlyUrl } from "@kodama/ksp-browser";
+import { buildReadOnlyUrl } from "@kodama.page/ksp-browser";
 
 const shareUrl = buildReadOnlyUrl(
   `https://note.kodama.app/${slug}`,

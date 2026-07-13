@@ -11,10 +11,10 @@ Deterministic interoperability test vectors for KSP v1.
 ## Regenerating
 
 ```bash
-npm run generate-vectors -w @kodama/ksp-core
+npm run generate-vectors -w @kodama.page/ksp-core
 ```
 
-This uses fixed salt (`0x42…`) and IV (`0x11…`) via the test-only `setRandomOverride` hook in `@kodama/ksp-core`.
+This uses fixed salt (`0x42…`) and IV (`0x11…`) via the test-only `setRandomOverride` hook in `@kodama.page/ksp-core`.
 
 ## Cross-Language Interop
 

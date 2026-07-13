@@ -1,19 +1,19 @@
-# @kodama/ksp-core
+# @kodama.page/ksp-core
 
 Core implementation of the Kodama Security Protocol (KSP).
 
 ## Install
 
 ```bash
-npm install @kodama/ksp-core
+npm install @kodama.page/ksp-core
 ```
 
 In this monorepo:
 
 ```bash
-npm run build -w @kodama/ksp-core
-npm test -w @kodama/ksp-core
-npm run generate-vectors -w @kodama/ksp-core
+npm run build -w @kodama.page/ksp-core
+npm test -w @kodama.page/ksp-core
+npm run generate-vectors -w @kodama.page/ksp-core
 ```
 
 ## Modules
@@ -42,7 +42,7 @@ import {
   createNotePayload,
   readWithPassword,
   verifyCreateNotePayload,
-} from "@kodama/ksp-core";
+} from "@kodama.page/ksp-core";
 
 const { payload, readerCapability, editorPrivateKey, ownerPrivateKey } =
   await createNotePayload({

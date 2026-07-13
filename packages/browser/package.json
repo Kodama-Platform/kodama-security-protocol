@@ -1,1 +1,25 @@
-{"name":"@kodama/ksp-browser","version":"0.1.0","description":"Browser helpers for the Kodama Security Protocol.","type":"module","main":"dist/index.js","types":"dist/index.d.ts","exports":{".":{"types":"./dist/index.d.ts","import":"./dist/index.js"}},"scripts":{"build":"tsc -p tsconfig.json","test":"echo \"No browser package tests yet\"","typecheck":"tsc -p tsconfig.json --noEmit"},"dependencies":{"@kodama/ksp-core":"file:../core"},"devDependencies":{"typescript":"^5.5.4"}}
+{
+    "name": "@kodama.page/ksp-browser",
+    "version": "0.1.0",
+    "description": "Browser helpers for the Kodama Security Protocol.",
+    "type": "module",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "import": "./dist/index.js"
+        }
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "test": "echo \"No browser package tests yet\"",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+    },
+    "dependencies": {
+        "@kodama.page/ksp-core": "file:../core"
+    },
+    "devDependencies": {
+        "typescript": "^5.5.4"
+    }
+}

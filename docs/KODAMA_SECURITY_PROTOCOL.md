@@ -6,10 +6,10 @@ This file serves two purposes:
 
 | Part | Sections | Status |
 |------|----------|--------|
-| **Reference implementation** | [§2 Reference Implementation (Normative)](#2-reference-implementation-normative) | Authoritative for `@kodama/ksp-core`. Matches the TypeScript packages, test vectors, and `docs/backend-schema.sql`. |
+| **Reference implementation** | [§2 Reference Implementation (Normative)](#2-reference-implementation-normative) | Authoritative for `@kodama.page/ksp-core`. Matches the TypeScript packages, test vectors, and `docs/backend-schema.sql`. |
 | **Product architecture (planned)** | §3–§13 | Target Kodama Note product design. Includes features not yet in the reference library (CEK wrapping, object storage, owner sessions, etc.). |
 
-When integrating against `@kodama/ksp-core`, follow **§2** only. See the [divergence table](#213-divergence-from-product-architecture) before reading §3+.
+When integrating against `@kodama.page/ksp-core`, follow **§2** only. See the [divergence table](#213-divergence-from-product-architecture) before reading §3+.
 
 Related docs: [INTEGRATION.md](./INTEGRATION.md) · [AUDIT.md](./AUDIT.md) · [backend-schema.sql](./backend-schema.sql)
 
@@ -351,7 +351,7 @@ Independent cryptographic audit unless one has been completed.
 
 ## 2. Reference Implementation (Normative)
 
-This section is the authoritative specification for `@kodama/ksp-core` v0.1.0. Types and helpers live in `packages/core/src/`.
+This section is the authoritative specification for `@kodama.page/ksp-core` v0.1.0. Types and helpers live in `packages/core/src/`.
 
 ### 2.1 Cryptographic Primitives
 
@@ -678,7 +678,7 @@ note.{id}          → application/octet-stream (repeat)
 attachment.{id}    → application/octet-stream (repeat)
 ```
 
-Helpers: `buildCreateBundleFormData`, `parseBundleFormData`, `createPlaceBundlePayload`, `verifyCreatePlaceBundlePayload` in `@kodama/ksp-core`.
+Helpers: `buildCreateBundleFormData`, `parseBundleFormData`, `createPlaceBundlePayload`, `verifyCreatePlaceBundlePayload` in `@kodama.page/ksp-core`.
 
 **Canonical messages:** `kodama:v1:create-place-bundle`, `kodama:v1:edit-place-bundle` — sign `bundle_digest` (SHA-256 over sorted item refs).
 
@@ -735,7 +735,7 @@ See [§2.7 Owner Signatures](#27-owner-signatures) for payload shapes.
 | `rotate-password` | `{ kdf, salt, ciphertext, iv, owner_public_key, editor_public_keys }` | New password; re-encrypt; new owner/editor keys |
 | `revoke` | `{ status: "revoked" \| "archived", reason? }` | Mark place inactive |
 
-Helpers: `packages/core/src/rotation.ts` (`createRotateReaderAction`, `createRotateEditorAction`, `createRotatePasswordAction`, `createRevokeAction`). Server verifiers: `@kodama/ksp-server`.
+Helpers: `packages/core/src/rotation.ts` (`createRotateReaderAction`, `createRotateEditorAction`, `createRotatePasswordAction`, `createRevokeAction`). Server verifiers: `@kodama.page/ksp-server`.
 
 ### 2.10 Backend Schema (Reference)
 
@@ -743,15 +743,15 @@ See [`backend-schema.sql`](./backend-schema.sql). Core columns: `slug`, `product
 
 ### 2.11 Test Vectors
 
-Deterministic interop vectors: [`test-vectors/v1.json`](../test-vectors/v1.json). Regenerate with `npm run generate-vectors -w @kodama/ksp-core`.
+Deterministic interop vectors: [`test-vectors/v1.json`](../test-vectors/v1.json). Regenerate with `npm run generate-vectors -w @kodama.page/ksp-core`.
 
 ### 2.12 Reference API Surface
 
 | Client | Package | Key exports |
 |--------|---------|-------------|
-| Browser | `@kodama/ksp-browser` | Core + `getFragmentCapability`, `buildReadOnlyUrl` |
-| Server | `@kodama/ksp-server` | Verification helpers, slug validation |
-| Shared | `@kodama/ksp-core` | Full crypto and protocol |
+| Browser | `@kodama.page/ksp-browser` | Core + `getFragmentCapability`, `buildReadOnlyUrl` |
+| Server | `@kodama.page/ksp-server` | Verification helpers, slug validation |
+| Shared | `@kodama.page/ksp-core` | Full crypto and protocol |
 
 See [INTEGRATION.md](./INTEGRATION.md) for step-by-step flows.
 
@@ -800,7 +800,7 @@ Password
 
 The editor branch is **orthogonal to encryption**: the editor key pair authorizes signed updates but does not wrap or encrypt note content. §3.6 describes the editor key pair; §3.4–§3.5 describe the read/CEK path.
 
-> **Reference implementation (`@kodama/ksp-core`):** use the diagram in [§2.3](#23-key-derivation) instead. It derives read, editor, and owner material directly from the master secret via HKDF — no random CEK, and the read key encrypts content.
+> **Reference implementation (`@kodama.page/ksp-core`):** use the diagram in [§2.3](#23-key-derivation) instead. It derives read, editor, and owner material directly from the master secret via HKDF — no random CEK, and the read key encrypts content.
 
 ---
 
@@ -2894,7 +2894,7 @@ Editor private key
 ```
 ## 12. API Message Format (Product — Planned)
 
-> **Reference implementation:** wire payloads and canonical message strings are defined in [§2.6](#26-canonical-messages) and [§2.7](#27-wire-payloads). Product API below uses JSON edit messages, object storage upload, and `wrapped_content_key` — not yet implemented in `@kodama/ksp-core`.
+> **Reference implementation:** wire payloads and canonical message strings are defined in [§2.6](#26-canonical-messages) and [§2.7](#27-wire-payloads). Product API below uses JSON edit messages, object storage upload, and `wrapped_content_key` — not yet implemented in `@kodama.page/ksp-core`.
 
 ### 11.1 Design Principles
 

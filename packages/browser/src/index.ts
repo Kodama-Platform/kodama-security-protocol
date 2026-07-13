@@ -1,4 +1,4 @@
-export * from "@kodama/ksp-core";
+export * from "@kodama.page/ksp-core";
 
 export function getFragmentCapability(name: string): string | null {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));

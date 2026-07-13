@@ -1,4 +1,4 @@
-import { createNotePayload } from "@kodama/ksp-core";
+import { createNotePayload } from "@kodama.page/ksp-core";
 const result = await createNotePayload({ 
     slug: "wallet", 
     password: "replace-with-user-password", 

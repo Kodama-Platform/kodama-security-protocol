@@ -17,9 +17,9 @@ KSP provides a zero-knowledge, capability-based architecture for encryption, sha
 ```text
 kodama-security-protocol/
 ├── packages/
-│   ├── core/          @kodama/ksp-core   — crypto primitives and protocol logic
-│   ├── browser/       @kodama/ksp-browser — browser helpers (URL fragments, re-exports)
-│   └── server/        @kodama/ksp-server  — server-side verification helpers
+│   ├── core/          @kodama.page/ksp-core   — crypto primitives and protocol logic
+│   ├── browser/       @kodama.page/ksp-browser — browser helpers (URL fragments, re-exports)
+│   └── server/        @kodama.page/ksp-server  — server-side verification helpers
 ├── docs/
 │   ├── KODAMA_SECURITY_PROTOCOL.md  — protocol specification
 │   ├── INTEGRATION.md               — integration guide for apps and backends
@@ -33,9 +33,9 @@ kodama-security-protocol/
 
 | Package | Purpose |
 |---------|---------|
-| [`@kodama/ksp-core`](packages/core) | Key derivation, encryption, signing, message canonicalization, payload builders and verifiers |
-| [`@kodama/ksp-browser`](packages/browser) | Re-exports core plus URL fragment helpers for read-only sharing |
-| [`@kodama/ksp-server`](packages/server) | Re-exports verification and slug helpers for backend use |
+| [`@kodama.page/ksp-core`](packages/core) | Key derivation, encryption, signing, message canonicalization, payload builders and verifiers |
+| [`@kodama.page/ksp-browser`](packages/browser) | Re-exports core plus URL fragment helpers for read-only sharing |
+| [`@kodama.page/ksp-server`](packages/server) | Re-exports verification and slug helpers for backend use |
 
 ## Quick Start
 
@@ -52,7 +52,7 @@ npm test
 ### Create a Note (client-side)
 
 ```typescript
-import { createNotePayload } from "@kodama/ksp-core";
+import { createNotePayload } from "@kodama.page/ksp-core";
 
 const result = await createNotePayload({
   slug: "wallet",
@@ -77,7 +77,7 @@ const secrets = {
 ### Verify on the Server
 
 ```typescript
-import { verifyCreateNotePayload, verifyEditPayload } from "@kodama/ksp-server";
+import { verifyCreateNotePayload, verifyEditPayload } from "@kodama.page/ksp-server";
 
 const ok = await verifyCreateNotePayload(incomingPayload);
 if (!ok) throw new Error("invalid create signature");

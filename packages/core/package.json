@@ -1,5 +1,5 @@
 {
-  "name": "@kodama/ksp-core",
+  "name": "@kodama.page/ksp-core",
   "version": "0.1.0",
   "description": "Core implementation of the Kodama Security Protocol.",
   "type": "module",

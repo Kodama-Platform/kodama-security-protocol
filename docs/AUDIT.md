@@ -41,7 +41,7 @@ The implementation remains **pre-production** pending independent security revie
 | M2 | No read helpers | `readWithPassword`, `readWithCapability`, `buildContentAad` in `read.ts`. |
 | M3 | Minimal test coverage | 24 tests across protocol, read, rotation, messages, slug, and vectors. |
 | L1 | Build artifacts in `src/` | Removed; `.gitignore` updated to block future artifacts. |
-| L5 | No test vectors | `test-vectors/v1.json` generated via `npm run generate-vectors -w @kodama/ksp-core`. |
+| L5 | No test vectors | `test-vectors/v1.json` generated via `npm run generate-vectors -w @kodama.page/ksp-core`. |
 
 ## Remaining Gaps
 

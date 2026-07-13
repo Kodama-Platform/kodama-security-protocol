@@ -19,11 +19,11 @@ export {
   bundleDigest,
   bundleDigestFromPlaceBundle,
   validatePlaceBundle,
-} from "@kodama/ksp-core";
+} from "@kodama.page/ksp-core";
 export {
   verifyRotateReaderAction,
   verifyRotateEditorAction,
   verifyRotatePasswordAction,
   verifyRevokeAction,
   OWNER_ACTIONS,
-} from "@kodama/ksp-core";
+} from "@kodama.page/ksp-core";
