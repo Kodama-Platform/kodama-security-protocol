@@ -3,6 +3,7 @@ dist
 .env
 .DS_Store
 coverage
+*.tsbuildinfo
 
 # TypeScript build artifacts must not live in src/
 packages/*/src/**/*.js
