@@ -1093,13 +1093,13 @@ Full rotation replaces every capability.
 
 ## 4. Create Note Protocol (Product — Planned)
 
-### 3.1 Goal
+### 4.1 Goal
 
 The Create Note Protocol creates a new encrypted note without exposing plaintext, password, content key, reader capability, editor private key, or owner authentication secret to the backend.
 
 ---
 
-### 3.2 User Inputs
+### 4.2 User Inputs
 
 The user enters:
 
@@ -1118,7 +1118,7 @@ plaintext note
 
 ---
 
-### 3.3 Browser Creation Steps
+### 4.3 Browser Creation Steps
 
 #### Step 1
 
@@ -1235,7 +1235,7 @@ plaintext
 
 ---
 
-### 3.4 Payload Sent to Backend
+### 4.4 Payload Sent to Backend
 
 ```json
 {
@@ -1263,7 +1263,7 @@ owner_auth_secret
 
 ---
 
-### 3.5 Backend Validation
+### 4.5 Backend Validation
 
 The backend validates:
 
@@ -1281,7 +1281,7 @@ No password verification is required during creation because the backend stores 
 
 ---
 
-### 3.6 Backend Storage
+### 4.6 Backend Storage
 
 The backend stores:
 
@@ -1301,7 +1301,7 @@ No plaintext secrets are stored.
 
 ---
 
-### 3.7 Response
+### 4.7 Response
 
 ```json
 {
@@ -1314,7 +1314,7 @@ No plaintext secrets are stored.
 
 ---
 
-### 3.8 Security Properties
+### 4.8 Security Properties
 
 After creation:
 
@@ -1328,7 +1328,7 @@ Database compromise reveals only encrypted data and public metadata.
 ```
 ## 5. Read Protocol (Product — Planned)
 
-### 4.1 Goal
+### 5.1 Goal
 
 The Read Protocol allows a user with valid read access to decrypt note content entirely within the browser.
 
@@ -1336,7 +1336,7 @@ The backend stores only encrypted data and never participates in decryption.
 
 ---
 
-### 4.2 Access Levels
+### 5.2 Access Levels
 
 Kodama supports three access levels.
 
@@ -1386,7 +1386,7 @@ Reader can decrypt the note but cannot modify it.
 
 ---
 
-### 4.3 Owner Read Flow
+### 5.3 Owner Read Flow
 
 ```text
 Owner opens note URL
@@ -1435,7 +1435,7 @@ plaintext
 
 ---
 
-### 4.4 Reader Read Flow
+### 5.4 Reader Read Flow
 
 Reader receives a sharing link.
 
@@ -1490,7 +1490,7 @@ The backend never receives the reader secret because URL fragments are not trans
 
 ---
 
-### 4.5 Browser Decryption
+### 5.5 Browser Decryption
 
 The browser performs:
 
@@ -1519,7 +1519,7 @@ All cryptographic operations occur locally.
 
 ---
 
-### 4.6 Backend Response
+### 5.6 Backend Response
 
 Endpoint:
 
@@ -1549,7 +1549,7 @@ Only possession of a valid reader capability allows successful decryption.
 
 ---
 
-### 4.7 Security Properties
+### 5.7 Security Properties
 
 The Read Protocol guarantees:
 
@@ -1565,7 +1565,7 @@ Database compromise alone cannot reveal note content.
 
 ## 6. Edit Protocol (Product — Planned)
 
-### 5.1 Goal
+### 6.1 Goal
 
 The Edit Protocol allows the active editor to update encrypted content while preventing unauthorized modifications.
 
@@ -1573,7 +1573,7 @@ Kodama supports one active editor per note.
 
 ---
 
-### 5.2 Editor Capability
+### 6.2 Editor Capability
 
 Editor possesses:
 
@@ -1602,7 +1602,7 @@ perform owner actions
 
 ---
 
-### 5.3 Edit Flow
+### 6.3 Edit Flow
 
 ```text
 Editor opens note
@@ -1657,7 +1657,7 @@ Version increments
 
 ---
 
-### 5.4 Canonical Edit Message
+### 6.4 Canonical Edit Message
 
 The browser signs:
 
@@ -1684,7 +1684,7 @@ Ed25519(editor_private_key)
 
 ---
 
-### 5.5 Backend Validation
+### 6.5 Backend Validation
 
 Backend accepts an edit only if:
 
@@ -1705,7 +1705,7 @@ reject update
 
 ---
 
-### 5.6 Edit Request
+### 6.6 Edit Request
 
 Endpoint:
 
@@ -1739,7 +1739,7 @@ editor private key
 
 ---
 
-### 5.7 Conflict Detection
+### 6.7 Conflict Detection
 
 Only one version may become current.
 
@@ -1757,7 +1757,7 @@ The browser should fetch the latest encrypted version before retrying.
 
 ---
 
-### 5.8 Security Properties
+### 6.8 Security Properties
 
 The Edit Protocol ensures:
 
@@ -1773,7 +1773,7 @@ Permission enforcement is cryptographic.
 
 ## 7. Owner/Admin Protocol (Product — Planned)
 
-### 6.1 Goal
+### 7.1 Goal
 
 The Owner/Admin Protocol authorizes operations that permanently change access or cryptographic capabilities.
 
@@ -1783,7 +1783,7 @@ The backend never stores or receives the password.
 
 ---
 
-### 6.2 Owner Authentication
+### 7.2 Owner Authentication
 
 Ownership is represented solely by the password.
 
@@ -1830,7 +1830,7 @@ The owner should be prompted for the password again after the session expires.
 
 ---
 
-### 6.3 Owner Capabilities
+### 7.3 Owner Capabilities
 
 Only the owner may perform:
 
@@ -1847,7 +1847,7 @@ Editors and readers cannot perform these actions.
 
 ---
 
-### 6.4 Owner Action Flow
+### 7.4 Owner Action Flow
 
 Example: Rotate Editor Key.
 
@@ -1895,7 +1895,7 @@ Owner action sequence increments
 ```
 ---
 
-### 6.5 Owner Request
+### 7.5 Owner Request
 
 Endpoint:
 
@@ -1933,7 +1933,7 @@ The session token is temporary and does not reveal the owner's password or any c
 If the session expires, the owner must authenticate again by entering the password.
 ---
 
-### 6.6 Backend Validation
+### 7.6 Backend Validation
 
 Backend accepts an owner action only if:
 
@@ -1953,7 +1953,7 @@ reject request
 
 ---
 
-### 6.7 Security Properties
+### 7.7 Security Properties
 
 The Owner/Admin Protocol guarantees:
 
@@ -1969,7 +1969,7 @@ Kodama provides no ownership transfer workflow.
 ```
 ## 8. Sharing Protocol (Product — Planned)
 
-### 7.1 Goal
+### 8.1 Goal
 
 Kodama uses a capability-based sharing model.
 
@@ -1995,7 +1995,7 @@ Kodama provides no ownership transfer feature. There is no supported workflow to
 
 ---
 
-### 7.2 Permission Model
+### 8.2 Permission Model
 
 #### Owner
 
@@ -2085,7 +2085,7 @@ rotate
 
 ---
 
-### 7.3 Reader Sharing
+### 8.3 Reader Sharing
 
 The owner creates a read-only sharing link.
 
@@ -2148,7 +2148,7 @@ plaintext
 
 ---
 
-### 7.4 Editor Sharing
+### 8.4 Editor Sharing
 
 The owner may grant edit access.
 
@@ -2190,7 +2190,7 @@ The backend verifies every update using the stored editor public key.
 
 ---
 
-### 7.5 Sharing Limitations
+### 8.5 Sharing Limitations
 
 Kodama intentionally does not attempt to control information after it has been decrypted.
 
@@ -2211,7 +2211,7 @@ It cannot prevent users from copying plaintext after legitimate access.
 
 ---
 
-### 7.6 Backend Knowledge
+### 8.6 Backend Knowledge
 
 The backend stores only encrypted and public information.
 
@@ -2239,7 +2239,7 @@ plaintext
 
 ---
 
-### 7.7 Security Properties
+### 8.7 Security Properties
 
 The Sharing Protocol guarantees:
 
@@ -2259,7 +2259,7 @@ Kodama provides no ownership transfer workflow.
 
 ## 9. Rotation Protocol (Product — Planned)
 
-### 8.1 Goal
+### 9.1 Goal
 
 Kodama does not implement revocation.
 
@@ -2273,7 +2273,7 @@ Rotation cannot erase information that has already been decrypted.
 
 ---
 
-### 8.2 Rotation Types
+### 9.2 Rotation Types
 
 Kodama supports:
 
@@ -2286,7 +2286,7 @@ Full Rotation
 
 ---
 
-### 8.3 Reader Rotation
+### 9.3 Reader Rotation
 
 Reader rotation is used when:
 
@@ -2335,7 +2335,7 @@ Old reader links can no longer decrypt future ciphertext.
 
 ---
 
-### 8.4 Editor Rotation
+### 9.4 Editor Rotation
 
 Editor rotation replaces the active editor.
 
@@ -2366,11 +2366,11 @@ If the editor also possessed the reader capability, perform Reader Rotation as w
 ---
 
 | URL fragment | `#read=<capability>` | `#reader_secret=...` |
-| HKDF labels | `kodama:v1:read`, `editor`, `owner` | `kodama:v1:reader`, `owner-auth` |
+| HKDF labels | `kodama:v1:read`, `kodama:v1:editor`, `kodama:v1:owner` | `kodama:v1:reader`, `owner-auth` |
 
 ---
 
-### 8.5 Password Rotation
+### 9.5 Password Rotation
 
 > **Reference implementation:** password change uses a signed `rotate-password` owner action ([§2.7](#27-owner-signatures)), not owner auth hashes or sessions. Full re-encryption is required because the read key is password-derived.
 
@@ -2406,13 +2406,13 @@ Owner session is refreshed
 
 The old password immediately loses owner privileges.
 
-Password rotation does not require re-encrypting the note.
+In the **product architecture (planned)**, password rotation does not require re-encrypting the note ciphertext because note encryption is performed with a random content key (CEK) that is wrapped separately from owner authentication. In the **reference implementation**, password rotation **does** require re-encrypting because the read key is derived from the password.
 
 However, if password compromise is suspected, Reader Rotation and Editor Rotation should also be performed.
 
 ---
 
-### 8.6 Full Rotation
+### 9.6 Full Rotation
 
 Full Rotation replaces every active capability.
 
@@ -2474,7 +2474,7 @@ Old password no longer grants owner privileges if the password was also changed.
 
 ---
 
-### 8.7 Backend Validation
+### 9.7 Backend Validation
 
 Every rotation request must verify:
 
@@ -2498,7 +2498,7 @@ Reject rotation
 
 ---
 
-### 8.8 Rotation Limitations
+### 9.8 Rotation Limitations
 
 Rotation protects future access only.
 
@@ -2522,7 +2522,7 @@ Malicious JavaScript running on the client
 
 ---
 
-### 8.9 Security Properties
+### 9.9 Security Properties
 
 Rotation guarantees:
 
@@ -2540,7 +2540,7 @@ Old cryptographic capabilities cannot access future protected versions.
 
 ## 10. Access Loss Limitations
 
-### 9.1 Zero-Knowledge Model
+### 10.1 Zero-Knowledge Model
 
 Kodama never stores:
 
@@ -2564,7 +2564,7 @@ This limitation is fundamental to zero-knowledge encryption.
 
 ---
 
-### 9.2 Lost Password
+### 10.2 Lost Password
 
 If the owner forgets the password:
 
@@ -2580,7 +2580,7 @@ Kodama cannot restore ownership.
 
 ---
 
-### 9.3 Lost Reader Capability
+### 10.3 Lost Reader Capability
 
 If a reader loses the sharing link:
 
@@ -2594,7 +2594,7 @@ No password change is required.
 
 ---
 
-### 9.4 Lost Editor Private Key
+### 10.4 Lost Editor Private Key
 
 If the editor loses the private key:
 
@@ -2614,7 +2614,7 @@ The old editor key becomes invalid for future edits.
 
 ---
 
-### 9.5 Why Kodama Cannot Recover Notes
+### 10.5 Why Kodama Cannot Recover Notes
 
 Kodama never possesses the information required to decrypt notes.
 
@@ -2626,13 +2626,13 @@ This limitation is the direct consequence of providing true zero-knowledge secur
 
 ---
 
-### 9.6 User-Facing Explanation
+### 10.6 User-Facing Explanation
 
 > Your note is encrypted before it leaves your browser. Kodama never receives your password or your cryptographic secrets. Because only you possess the information required to unlock your note, Kodama cannot recover lost passwords or restore access if they are forgotten.
 
 ---
 
-### 9.7 Investor Explanation
+### 10.7 Investor Explanation
 
 > Kodama implements a zero-knowledge security architecture in which ownership, editing, and reading are cryptographically separated. The service stores encrypted content and public verification data only, allowing authorization and collaboration without ever possessing the user's password or plaintext. This architecture prevents both infrastructure compromise and service operators from accessing protected content while maintaining fine-grained permission control.
 
@@ -2642,7 +2642,7 @@ This limitation is the direct consequence of providing true zero-knowledge secur
 
 > **Reference implementation:** use [`backend-schema.sql`](./backend-schema.sql) instead. It stores ciphertext inline (no object storage), includes `kdf` and `owner_public_key`, and omits `wrapped_content_key`.
 
-### 10.1 Design Principle
+### 11.1 Design Principle
 
 Kodama separates encrypted content from metadata.
 
@@ -2654,7 +2654,7 @@ This allows Kodama to efficiently support notes larger than 10 MB while keeping 
 
 ---
 
-### 10.2 Object Storage
+### 11.2 Object Storage
 
 Encrypted note content is stored in object storage.
 
@@ -2684,7 +2684,7 @@ The storage service stores encrypted bytes only.
 
 ---
 
-### 10.3 places
+### 11.3 places
 
 ```sql
 create table places (
@@ -2734,7 +2734,7 @@ create table places (
 
 ---
 
-### 10.4 place_versions
+### 11.4 place_versions
 
 ```sql
 create table place_versions (
@@ -2775,7 +2775,7 @@ Rollback
 
 ---
 
-### 10.5 owner_actions
+### 11.5 owner_actions
 
 ```sql
 create table owner_actions (
@@ -2809,7 +2809,7 @@ Security logging
 
 ---
 
-### 10.6 orders
+### 11.6 orders
 
 ```sql
 create table orders (
@@ -2837,7 +2837,7 @@ create table orders (
 
 ---
 
-### 10.7 payments
+### 11.7 payments
 
 ```sql
 create table payments (
@@ -2865,7 +2865,7 @@ create table payments (
 
 ---
 
-### 10.8 Backend Storage Summary
+### 11.8 Backend Storage Summary
 
 The backend stores:
 
@@ -2894,9 +2894,9 @@ Editor private key
 ```
 ## 12. API Message Format (Product — Planned)
 
-> **Reference implementation:** wire payloads and canonical message strings are defined in [§2.6](#26-canonical-messages) and [§2.7](#27-wire-payloads). Product API below uses JSON edit messages, object storage upload, and `wrapped_content_key` — not yet implemented in `@kodama.page/ksp-core`.
+> **Reference implementation:** wire payloads and canonical message strings are defined in [§2.6](#26-canonical-messages) and [§2.8](#28-wire-payloads). Product API below uses JSON edit messages, object storage upload, and `wrapped_content_key` — not yet implemented in `@kodama.page/ksp-core`.
 
-### 11.1 Design Principles
+### 12.1 Design Principles
 
 All API requests operate on encrypted data.
 
@@ -2910,7 +2910,7 @@ Every edit is versioned.
 
 ---
 
-### 11.2 Create Note
+### 12.2 Create Note
 
 ```
 POST /api/places/create
@@ -2950,7 +2950,7 @@ Object already exists in storage
 
 ---
 
-### 11.3 Read Note
+### 12.3 Read Note
 
 ```
 GET /api/places/:slug
@@ -2977,7 +2977,7 @@ Browser downloads ciphertext directly from object storage.
 
 ---
 
-### 11.4 Edit Note
+### 12.4 Edit Note
 
 ```
 POST /api/places/:slug/edit
@@ -3014,7 +3014,7 @@ Then updates metadata.
 
 ---
 
-### 11.5 Owner Action
+### 12.5 Owner Action
 
 ```
 POST /api/places/:slug/owner-action
@@ -3046,7 +3046,7 @@ Request uniqueness
 
 ---
 
-### 11.6 Upload Flow
+### 12.6 Upload Flow
 
 Large encrypted files should not be uploaded through the API.
 
@@ -3088,13 +3088,14 @@ No API payload limits
 
 ---
 
-### 11.7 Payment API
+### 12.7 Payment API
 
 Payment APIs remain unchanged.
 
 Payments never receive encryption material.
 
 Payment providers never receive plaintext note content.
+
 ## 13. Security Claims
 
 ### 13.1 Claims Kodama Can Make
@@ -3134,12 +3135,12 @@ Kodama should never claim:
 
 ---
 
-### 12.3 End-User Explanation
+### 13.3 End-User Explanation
 
 > Your note is encrypted inside your browser before it is uploaded. Kodama stores only encrypted data and the metadata required to retrieve it. Your password never leaves your device, and only someone with the correct password or a valid shared capability can access the note. Even if Kodama's database or storage systems are compromised, attackers cannot read your notes without the cryptographic secrets that remain under your control.
 
 ---
 
-### 12.4 Investor Explanation
+### 13.4 Investor Explanation
 
 > Kodama Note implements a zero-knowledge, capability-based security architecture designed for both security and scalability. Large encrypted notes are stored in object storage, while PostgreSQL stores only metadata and public verification information. Reading, editing, and ownership are cryptographically separated, allowing the backend to authorize operations without ever possessing plaintext content, user passwords, or private signing keys. This architecture supports large encrypted documents efficiently while preserving end-to-end confidentiality.
